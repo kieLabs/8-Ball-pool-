@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>8 Ball Pool & Snooker Pro - Gamerkie Edition</title>
+<!-- PeerJS CDN for Serverless P2P Online Multiplayer -->
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <style>
   :root {
     --bg-dark: #070b14;
@@ -84,7 +86,7 @@
     align-items: center;
     justify-content: center;
     font-weight: 800;
-    font-size: 16px;
+    font-size: 15px;
     color: var(--neon-cyan);
     border: 2px solid rgba(255,255,255,0.2);
     flex-shrink: 0;
@@ -156,6 +158,19 @@
     display: flex;
     align-items: center;
     gap: 8px;
+  }
+  .coin-badge {
+    background: rgba(251, 191, 36, 0.15);
+    border: 1px solid var(--neon-gold);
+    color: var(--neon-gold);
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    box-shadow: 0 0 10px rgba(251,191,36,0.2);
   }
   .hud-btn {
     background: rgba(255,255,255,0.07);
@@ -395,7 +410,7 @@
     transform: translateX(-50%) translateY(0);
   }
 
-  /* MODALS (MAIN MENU, SPIN MODAL, GAME OVER) */
+  /* MODALS (MAIN MENU, SPIN MODAL, GAME OVER, ONLINE MATCHMAKING) */
   .modal-overlay {
     position: fixed;
     inset: 0;
@@ -495,7 +510,7 @@
     color: #fff;
   }
 
-  /* SPIN ("ENGLISH") SELECTOR MODAL */
+  /* SPIN MODAL */
   #spin-wheel-large {
     width: 170px;
     height: 170px;
@@ -513,12 +528,8 @@
     background: rgba(0,0,0,0.18);
     pointer-events: none;
   }
-  #spin-wheel-large::before {
-    top: 50%; left: 10%; right: 10%; height: 1px;
-  }
-  #spin-wheel-large::after {
-    left: 50%; top: 10%; bottom: 10%; width: 1px;
-  }
+  #spin-wheel-large::before { top: 50%; left: 10%; right: 10%; height: 1px; }
+  #spin-wheel-large::after { left: 50%; top: 10%; bottom: 10%; width: 1px; }
   #spin-reticle {
     width: 22px;
     height: 22px;
@@ -526,8 +537,7 @@
     background: radial-gradient(circle, #ef4444 35%, #991b1b 100%);
     border: 2px solid #fff;
     position: absolute;
-    top: 50%;
-    left: 50%;
+    top: 50%; left: 50%;
     transform: translate(-50%, -50%);
     box-shadow: 0 2px 8px rgba(0,0,0,0.6);
     pointer-events: none;
@@ -536,7 +546,7 @@
   @media (max-width: 720px) {
     #top-hud { height: 52px; padding: 0 6px; }
     .player-card { min-width: 140px; padding: 3px 6px; }
-    .avatar-wrap { width: 32px; height: 32px; font-size: 13px; }
+    .avatar-wrap { width: 32px; height: 32px; font-size: 12px; }
     .timer-svg { width: 38px; height: 38px; }
     .mini-ball { width: 11px; height: 11px; }
     .side-control { width: 42px; }
@@ -566,6 +576,9 @@
     </div>
 
     <div class="hud-center">
+      <div class="coin-badge" title="Coin Balance">
+        🪙 <span id="coin-count">1000</span>
+      </div>
       <div id="spin-btn" title="Cue Ball Spin (English)">
         <div id="spin-dot-mini"></div>
       </div>
@@ -580,11 +593,11 @@
         <svg class="timer-svg" viewBox="0 0 46 46">
           <circle id="p2-timer" class="timer-circle" cx="23" cy="23" r="20"></circle>
         </svg>
-        <span id="p2-avatar">AI</span>
+        <span id="p2-avatar">BOT</span>
       </div>
       <div class="p-info p-right">
         <div class="p-name-row">
-          <span id="p2-name">PRO BOT</span>
+          <span id="p2-name">Rahul_Pro</span>
           <span id="p2-group" class="p-group-badge">OPEN</span>
         </div>
         <div id="p2-slots" class="ball-slots"></div>
@@ -622,7 +635,7 @@
 
   <!-- BOTTOM BALL RETURN RAIL -->
   <div id="bottom-bar">
-    <div id="mode-indicator" style="color:var(--neon-cyan); font-weight:800;">MODE: 8-BALL VS AI</div>
+    <div id="mode-indicator" style="color:var(--neon-cyan); font-weight:800;">MODE: 8-BALL VS BOT (STAKE: 250 COINS)</div>
     <div id="pocketed-rail">
       <span class="rail-label">POCKETED:</span>
     </div>
@@ -634,7 +647,17 @@
 <div id="menu-modal" class="modal-overlay">
   <div class="modal-card">
     <div class="game-title">8 BALL POOL & SNOOKER PRO</div>
-    <div class="game-sub">GAMERKIE ARCADE EDITION • REAL 2D PHYSICS</div>
+    <div class="game-sub">GAMERKIE P2P & BOT EDITION • REAL PHYSICS</div>
+
+    <div class="selector-row">
+      <span>Match Stake (Coins):</span>
+      <div class="pill-group" id="stake-pills">
+        <button class="pill" data-stake="100">100 🪙</button>
+        <button class="pill active" data-stake="250">250 🪙</button>
+        <button class="pill" data-stake="500">500 🪙</button>
+        <button class="pill" data-stake="1000">1000 🪙</button>
+      </div>
+    </div>
 
     <div class="selector-row">
       <span>Cue Stick Style:</span>
@@ -645,31 +668,22 @@
       </div>
     </div>
 
-    <div class="selector-row">
-      <span>Table Felt Color:</span>
-      <div class="pill-group" id="felt-pills">
-        <button class="pill active" data-felt="emerald">Tournament Green</button>
-        <button class="pill" data-felt="blue">Championship Blue</button>
-        <button class="pill" data-felt="crimson">Royal Red</button>
-      </div>
-    </div>
-
     <div class="mode-grid">
       <button class="mode-btn" onclick="Game.startMode('8ball_ai')">
-        <h4>🎱 8-Ball Pool (Vs AI)</h4>
-        <p>Play Store rules, Solids vs Stripes, Smart AI Bot & Spin control.</p>
+        <h4>🎱 8-Ball Vs Real Bot</h4>
+        <p>Play against smart real-name bot (Earn Coins).</p>
+      </button>
+      <button class="mode-btn" onclick="Game.startMode('online_p2p')">
+        <h4>🌐 Online P2P Match</h4>
+        <p>Connect with a real player via Room Code or Fallback to Bot.</p>
       </button>
       <button class="mode-btn" onclick="Game.startMode('snooker_ai')">
-        <h4>🔴 Quick Snooker (Vs AI)</h4>
-        <p>10 Reds + 6 Colors on spots. Alternate Red & Color pots for points.</p>
-      </button>
-      <button class="mode-btn" onclick="Game.startMode('pass_play')">
-        <h4>👥 2-Player Pass & Play</h4>
-        <p>Local multiplayer 8-Ball match on the same device.</p>
+        <h4>🔴 Quick Snooker Vs Bot</h4>
+        <p>10 Reds + 6 Colors on spots for points.</p>
       </button>
       <button class="mode-btn" onclick="Game.startMode('practice')">
-        <h4>🎯 Solo Practice Mode</h4>
-        <p>Free table with Undo Shot & unrestricted trickshot practice.</p>
+        <h4>🎯 Solo Practice</h4>
+        <p>Free table with Undo & practice trickshots.</p>
       </button>
     </div>
 
@@ -679,11 +693,35 @@
   </div>
 </div>
 
-<!-- SPIN ("ENGLISH") MODAL -->
+<!-- ONLINE P2P ROOM MODAL -->
+<div id="online-modal" class="modal-overlay hidden">
+  <div class="modal-card" style="max-width:380px;">
+    <h3 style="color:var(--neon-cyan); margin-bottom:6px;">ONLINE P2P MATCHMAKING</h3>
+    <p id="online-status-text" style="font-size:12px; color:#cbd5e1; margin-bottom:14px;">Initializing Peer Connection...</p>
+    
+    <div style="background:rgba(255,255,255,0.04); padding:10px; border-radius:10px; margin-bottom:12px;">
+      <p style="font-size:11px; color:#94a3b8; margin-bottom:4px;">Your Room Code:</p>
+      <h2 id="my-peer-id" style="color:var(--neon-gold); letter-spacing:2px; font-size:20px;">Generating...</h2>
+    </div>
+
+    <div style="margin-bottom:14px;">
+      <p style="font-size:11px; color:#94a3b8; margin-bottom:4px;">Join Friend's Room:</p>
+      <div style="display:flex; gap:6px;">
+        <input type="text" id="join-room-input" placeholder="Enter Room Code" style="flex:1; background:#070b14; border:1px solid rgba(255,255,255,0.2); border-radius:8px; padding:8px; color:#fff; font-size:12px;">
+        <button class="hud-btn" onclick="Game.connectToPeer()">JOIN</button>
+      </div>
+    </div>
+
+    <p style="font-size:10px; color:#ef4444; margin-bottom:14px;">If no opponent joins in 10 seconds, you will auto-match with a Real-Name Bot!</p>
+    <button class="hud-btn" style="width:100%; justify-content:center;" onclick="Game.cancelOnline()">CANCEL / PLAY VS BOT</button>
+  </div>
+</div>
+
+<!-- SPIN MODAL -->
 <div id="spin-modal" class="modal-overlay hidden">
   <div class="modal-card" style="max-width: 320px;">
     <h3 style="color:var(--neon-cyan); margin-bottom:4px;">CUE BALL SPIN (ENGLISH)</h3>
-    <p style="font-size:11px; color:#94a3b8;">Top = Follow • Bottom = Backspin Draw • Left/Right = Side English</p>
+    <p style="font-size:11px; color:#94a3b8;">Top = Follow • Bottom = Backspin • Left/Right = Side</p>
     <div id="spin-wheel-large">
       <div id="spin-reticle"></div>
     </div>
@@ -697,10 +735,10 @@
 <!-- GAME OVER MODAL -->
 <div id="gameover-modal" class="modal-overlay hidden">
   <div class="modal-card" style="max-width: 380px;">
-    <div id="winner-title" class="game-title" style="font-size:28px;">PLAYER 1 WINS!</div>
-    <p id="winner-reason" style="color:#cbd5e1; font-size:13px; margin: 10px 0 20px;">Cleared table and legally potted the 8-Ball!</p>
+    <div id="winner-title" class="game-title" style="font-size:28px;">YOU WIN!</div>
+    <p id="winner-reason" style="color:#cbd5e1; font-size:13px; margin: 10px 0 20px;">Won the match and earned 250 coins!</p>
     <div style="display:flex; gap:10px; justify-content:center;">
-      <button class="hud-btn" style="padding:10px 18px; border-color:var(--neon-cyan);" onclick="Game.rematch()">🔄 PLAY AGAIN</button>
+      <button class="hud-btn" style="padding:10px 18px; border-color:var(--neon-cyan);" onclick="Game.rematch()">🔄 REMATCH</button>
       <button class="hud-btn" style="padding:10px 18px;" onclick="Game.openMenu()">☰ MAIN MENU</button>
     </div>
   </div>
@@ -709,7 +747,7 @@
 <script>
 /**
  * ============================================================================
- * 1. SYNTHESIZED WEB AUDIO API SOUND ENGINE (ZERO EXTERNAL ASSETS)
+ * 1. SYNTHESIZED WEB AUDIO API SOUND ENGINE
  * ============================================================================
  */
 class SoundEngine {
@@ -820,18 +858,19 @@ class SoundEngine {
 
 const SFX = new SoundEngine();
 
-/**
- * ============================================================================
- * 2. TABLE CONSTANTS, BALL PALETTE & CUE THEMES
- * ============================================================================
- */
+const REAL_BOT_NAMES = [
+  "Rahul_Ace", "Amit_Pool99", "Sneha_Cue", "Vikram_8Ball", 
+  "Pooja_Master", "Karan_Pro", "Neha_Shot", "Rohit_King", 
+  "Anjali_Snooker", "Sameer_Pro"
+];
+
 const LOGICAL_W = 1040;
 const LOGICAL_H = 560;
 const RAIL_SIZE = 52;
 const PLAY_X = RAIL_SIZE;
 const PLAY_Y = RAIL_SIZE;
-const PLAY_W = LOGICAL_W - RAIL_SIZE * 2; // 936
-const PLAY_H = LOGICAL_H - RAIL_SIZE * 2; // 456
+const PLAY_W = LOGICAL_W - RAIL_SIZE * 2;
+const PLAY_H = LOGICAL_H - RAIL_SIZE * 2;
 const BALL_R = 13.5;
 const POCKET_R = 26;
 
@@ -860,19 +899,24 @@ const FELT_THEMES = {
   crimson: { center: '#991b1b', edge: '#500b0b', line: 'rgba(255,255,255,0.22)' }
 };
 
-/**
- * ============================================================================
- * 3. MAIN GAME ENGINE & PHYSICS ARCHITECT
- * ============================================================================
- */
 class BilliardsGame {
   constructor() {
     this.canvas = document.getElementById('pool-canvas');
     this.ctx = this.canvas.getContext('2d');
 
-    this.mode = '8ball_ai'; // '8ball_ai', 'snooker_ai', 'pass_play', 'practice'
+    this.mode = '8ball_ai'; // '8ball_ai', 'snooker_ai', 'online_p2p', 'practice'
     this.cueStyle = 'classic';
     this.feltStyle = 'emerald';
+    this.stakeCoins = 250;
+    this.coins = parseInt(localStorage.getItem('gk_pool_coins') || '1000');
+    
+    this.botName = REAL_BOT_NAMES[Math.floor(Math.random() * REAL_BOT_NAMES.length)];
+
+    // P2P PeerJS
+    this.peer = null;
+    this.conn = null;
+    this.isHost = false;
+    this.p2pTimer = null;
 
     this.balls = [];
     this.pockets = [];
@@ -880,28 +924,24 @@ class BilliardsGame {
     this.pocketAnims = [];
     this.historySnapshots = [];
 
-    // Game State
-    this.state = 'AIMING'; // 'AIMING', 'BALL_IN_HAND', 'MOVING', 'AI_THINKING', 'GAME_OVER'
-    this.turn = 1; // 1 = Player 1, 2 = Player 2 / AI
-    this.p1Group = null; // 'SOLIDS', 'STRIPES', or points in Snooker
+    this.state = 'AIMING';
+    this.turn = 1; // 1 = You, 2 = Opponent / Bot
+    this.p1Group = null;
     this.p2Group = null;
     this.p1Score = 0;
     this.p2Score = 0;
-    this.snookerTarget = 'RED'; // 'RED', 'COLOR_ANY', or specific value 2..7
+    this.snookerTarget = 'RED';
     this.isBreakShot = true;
 
-    // Shot Tracking for Rules
     this.firstHitBall = null;
     this.pottedThisTurn = [];
     this.cueScratched = false;
 
-    // Aiming, Power & Spin Controls
     this.aimAngle = 0;
-    this.pullPower = 0; // 0..1
-    this.spinX = 0;     // -1..1 (Left/Right Side Spin)
-    this.spinY = 0;     // -1..1 (Top Follow / Bottom Draw)
+    this.pullPower = 0;
+    this.spinX = 0;
+    this.spinY = 0;
 
-    // Turn Timer
     this.turnTimeMax = 30;
     this.turnTimeLeft = 30;
     this.lastTickSec = 30;
@@ -909,10 +949,16 @@ class BilliardsGame {
     this.setupTableGeometry();
     this.bindEvents();
     this.resize();
+    this.updateCoinUI();
     this.startMode('8ball_ai');
 
     this.lastFrameTime = performance.now();
     requestAnimationFrame((t) => this.loop(t));
+  }
+
+  updateCoinUI() {
+    document.getElementById('coin-count').textContent = this.coins;
+    localStorage.setItem('gk_pool_coins', this.coins);
   }
 
   setupTableGeometry() {
@@ -931,25 +977,17 @@ class BilliardsGame {
       { x: R + 4, y: B + 4, r: POCKET_R }
     ];
 
-    // Cushion boundary segments with realistic pocket jaw openings
-    const cGap = 32; // Corner jaw gap
-    const sGap = 28; // Side pocket jaw gap
+    const cGap = 32;
+    const sGap = 28;
     this.cushions = [
-      // Top-Left to Top-Mid
       { x1: L + cGap, y1: T, x2: M - sGap, y2: T, nx: 0, ny: 1 },
-      // Top-Mid to Top-Right
       { x1: M + sGap, y1: T, x2: R - cGap, y2: T, nx: 0, ny: 1 },
-      // Bottom-Left to Bottom-Mid
       { x1: L + cGap, y1: B, x2: M - sGap, y2: B, nx: 0, ny: -1 },
-      // Bottom-Mid to Bottom-Right
       { x1: M + sGap, y1: B, x2: R - cGap, y2: B, nx: 0, ny: -1 },
-      // Left Cushion
       { x1: L, y1: T + cGap, x2: L, y2: B - cGap, nx: 1, ny: 0 },
-      // Right Cushion
       { x1: R, y1: T + cGap, x2: R, y2: B - cGap, nx: -1, ny: 0 }
     ];
 
-    // Pocket jaw knuckles (endpoints of cushions act as solid circular bumpers)
     this.knuckles = [];
     this.cushions.forEach(c => {
       this.knuckles.push({ x: c.x1, y: c.y1 });
@@ -958,8 +996,23 @@ class BilliardsGame {
   }
 
   startMode(modeName) {
+    if (this.peer) {
+      try { this.peer.destroy(); } catch(e){}
+      this.peer = null;
+      this.conn = null;
+    }
+    clearTimeout(this.p2pTimer);
+
+    if (modeName === 'online_p2p') {
+      document.getElementById('menu-modal').classList.add('hidden');
+      document.getElementById('online-modal').classList.remove('hidden');
+      this.initPeerConnection();
+      return;
+    }
+
     this.mode = modeName;
     document.getElementById('menu-modal').classList.add('hidden');
+    document.getElementById('online-modal').classList.add('hidden');
     document.getElementById('gameover-modal').classList.add('hidden');
     document.getElementById('pocketed-rail').innerHTML = '<span class="rail-label">POCKETED:</span>';
 
@@ -978,17 +1031,21 @@ class BilliardsGame {
     const undoBtn = document.getElementById('practice-undo-btn');
     undoBtn.style.display = (modeName === 'practice') ? 'flex' : 'none';
 
-    const modeLabels = {
-      '8ball_ai': 'MODE: 8-BALL VS AI BOT',
-      'snooker_ai': 'MODE: QUICK SNOOKER VS AI',
-      'pass_play': 'MODE: 2-PLAYER PASS & PLAY',
-      'practice': 'MODE: SOLO PRACTICE TABLE'
-    };
-    document.getElementById('mode-indicator').textContent = modeLabels[modeName];
+    if (modeName === '8ball_ai') {
+      this.botName = REAL_BOT_NAMES[Math.floor(Math.random() * REAL_BOT_NAMES.length)];
+      document.getElementById('mode-indicator').textContent = `MODE: 8-BALL VS ${this.botName.toUpperCase()} (STAKE: ${this.stakeCoins} 🪙)`;
+    } else if (modeName === 'snooker_ai') {
+      this.botName = REAL_BOT_NAMES[Math.floor(Math.random() * REAL_BOT_NAMES.length)];
+      document.getElementById('mode-indicator').textContent = `MODE: QUICK SNOOKER VS ${this.botName.toUpperCase()}`;
+    } else if (modeName === 'online_p2p') {
+      document.getElementById('mode-indicator').textContent = `MODE: ONLINE P2P MATCH`;
+    } else {
+      document.getElementById('mode-indicator').textContent = `MODE: SOLO PRACTICE TABLE`;
+    }
 
-    document.getElementById('p1-name').textContent = (modeName === 'pass_play') ? 'PLAYER 1' : 'YOU';
-    document.getElementById('p2-name').textContent = (modeName === 'pass_play') ? 'PLAYER 2' : (modeName === 'practice' ? 'SOLO MODE' : 'PRO BOT');
-    document.getElementById('p2-avatar').textContent = (modeName === 'pass_play') ? 'P2' : 'AI';
+    document.getElementById('p1-name').textContent = 'YOU';
+    document.getElementById('p2-name').textContent = (modeName === 'practice') ? 'SOLO' : this.botName;
+    document.getElementById('p2-avatar').textContent = (modeName === 'practice') ? 'SOLO' : this.botName.substring(0, 2).toUpperCase();
 
     if (modeName === 'snooker_ai') {
       this.rackSnooker();
@@ -1002,20 +1059,129 @@ class BilliardsGame {
     this.showToast('BREAK SHOT! YOUR TURN');
   }
 
+  initPeerConnection() {
+    const randomId = 'gk_' + Math.floor(1000 + Math.random() * 9000);
+    document.getElementById('my-peer-id').textContent = randomId;
+    document.getElementById('online-status-text').textContent = 'Looking for online players or waiting in room...';
+
+    this.peer = new Peer(randomId);
+    this.isHost = true;
+
+    this.peer.on('open', (id) => {
+      // Start 10 second timer for bot fallback if no online player joins
+      this.p2pTimer = setTimeout(() => {
+        if (!this.conn || !this.conn.open) {
+          this.showToast(`No online player found! Playing vs ${this.botName}`);
+          document.getElementById('online-modal').classList.add('hidden');
+          this.startMode('8ball_ai');
+        }
+      }, 10000);
+    });
+
+    this.peer.on('connection', (connection) => {
+      clearTimeout(this.p2pTimer);
+      this.conn = connection;
+      this.isHost = true;
+      this.setupPeerEvents();
+      this.showToast('Online Player Connected!');
+      document.getElementById('online-modal').classList.add('hidden');
+      this.startOnlineMatchAsHost();
+    });
+
+    this.peer.on('error', (err) => {
+      document.getElementById('online-status-text').textContent = 'Connection error. Switching to AI Bot...';
+      setTimeout(() => {
+        document.getElementById('online-modal').classList.add('hidden');
+        this.startMode('8ball_ai');
+      }, 2000);
+    });
+  }
+
+  connectToPeer() {
+    const friendId = document.getElementById('join-room-input').value.trim();
+    if (!friendId) return;
+    clearTimeout(this.p2pTimer);
+    document.getElementById('online-status-text').textContent = `Connecting to ${friendId}...`;
+
+    if (!this.peer) {
+      this.peer = new Peer();
+    }
+
+    this.conn = this.peer.connect(friendId);
+    this.isHost = false;
+    this.setupPeerEvents();
+
+    this.conn.on('open', () => {
+      this.showToast('Connected to Room!');
+      document.getElementById('online-modal').classList.add('hidden');
+      this.mode = 'online_p2p';
+      document.getElementById('mode-indicator').textContent = 'MODE: ONLINE P2P MATCH';
+      document.getElementById('p2-name').textContent = 'OPPONENT';
+      document.getElementById('p2-avatar').textContent = 'P2';
+      this.rack8Ball();
+      this.state = 'AIMING';
+      this.turn = 2; // Guest goes second on break or vice versa
+      this.updateHUD();
+    });
+  }
+
+  setupPeerEvents() {
+    if (!this.conn) return;
+    this.conn.on('data', (data) => {
+      if (data.type === 'SHOT') {
+        this.receivePeerShot(data);
+      } else if (data.type === 'SYNC') {
+        this.balls = data.balls;
+        this.turn = data.turn;
+        this.state = 'AIMING';
+        this.updateHUD();
+      }
+    });
+  }
+
+  startOnlineMatchAsHost() {
+    this.mode = 'online_p2p';
+    document.getElementById('p2-name').textContent = 'FRIEND';
+    document.getElementById('p2-avatar').textContent = 'P2';
+    this.rack8Ball();
+    this.turn = 1;
+    this.state = 'AIMING';
+    this.updateHUD();
+    this.sendPeerSync();
+  }
+
+  sendPeerShot(data) {
+    const cue = this.getCueBall();
+    cue.vx = data.vx;
+    cue.vy = data.vy;
+    cue.spinX = data.spinX;
+    cue.spinY = data.spinY;
+    this.state = 'MOVING';
+  }
+
+  sendPeerSync() {
+    if (this.conn && this.conn.open) {
+      this.conn.send({ type: 'SYNC', balls: this.balls, turn: this.turn });
+    }
+  }
+
+  cancelOnline() {
+    clearTimeout(this.p2pTimer);
+    document.getElementById('online-modal').classList.add('hidden');
+    this.startMode('8ball_ai');
+  }
+
   rack8Ball() {
     this.balls = [];
     const headX = PLAY_X + PLAY_W * 0.23;
     const centerY = PLAY_Y + PLAY_H / 2;
 
-    // Cue Ball (id: 0)
     this.balls.push(this.createBall(0, headX, centerY));
 
-    // Standard 5-row triangle rack at foot spot
     const footX = PLAY_X + PLAY_W * 0.73;
     const rowStepX = BALL_R * Math.sqrt(3) + 0.4;
     const colStepY = BALL_R * 2 + 0.4;
 
-    // Official 8-ball layout: 8 in center of row 3, opposite corners different groups
     const rackOrder = [
       [1],
       [9, 2],
@@ -1030,9 +1196,7 @@ class BilliardsGame {
       const startY = centerY - ((row.length - 1) * colStepY) / 2;
       for (let c = 0; c < row.length; c++) {
         const id = row[c];
-        const jitterX = (Math.random() - 0.5) * 0.15;
-        const jitterY = (Math.random() - 0.5) * 0.15;
-        this.balls.push(this.createBall(id, rx + jitterX, startY + c * colStepY + jitterY));
+        this.balls.push(this.createBall(id, rx, startY + c * colStepY));
       }
     }
   }
@@ -1043,10 +1207,8 @@ class BilliardsGame {
     const centerY = PLAY_Y + PLAY_H / 2;
     const dRadius = PLAY_H * 0.18;
 
-    // Cue ball inside the "D"
     this.balls.push(this.createBall(0, baulkX - 25, centerY + 20));
 
-    // 6 Snooker Colors on standard spots (using negative IDs or custom snooker properties)
     const colorDefs = [
       { id: 20, val: 2, hex: '#facc15', name: 'Yellow', x: baulkX, y: centerY + dRadius },
       { id: 21, val: 3, hex: '#16a34a', name: 'Green',  x: baulkX, y: centerY - dRadius },
@@ -1066,7 +1228,6 @@ class BilliardsGame {
       this.balls.push(b);
     });
 
-    // 10 Reds in a 4-row pyramid behind Pink
     const startX = PLAY_X + PLAY_W * 0.725;
     const rowStepX = BALL_R * Math.sqrt(3) + 0.4;
     const colStepY = BALL_R * 2 + 0.4;
@@ -1087,17 +1248,8 @@ class BilliardsGame {
 
   createBall(id, x, y) {
     return {
-      id,
-      x,
-      y,
-      vx: 0,
-      vy: 0,
-      spinX: 0,
-      spinY: 0,
-      potted: false,
-      snookerVal: 0,
-      isRed: false,
-      customHex: null
+      id, x, y, vx: 0, vy: 0, spinX: 0, spinY: 0,
+      potted: false, snookerVal: 0, isRed: false, customHex: null
     };
   }
 
@@ -1107,8 +1259,7 @@ class BilliardsGame {
 
   isBallLegalTarget(ball) {
     if (!ball || ball.id === 0 || ball.potted) return false;
-
-    if (this.mode === 'practice') return true;
+    if (this.mode === 'practice' || this.mode === 'online_p2p') return ball.id !== 8; // simplified open targeting for online p2p
 
     if (this.mode === 'snooker_ai') {
       const redsLeft = this.balls.some(b => !b.potted && b.isRed);
@@ -1121,17 +1272,11 @@ class BilliardsGame {
       }
     }
 
-    // 8-Ball Legal Target Check
     const currentGroup = (this.turn === 1) ? this.p1Group : this.p2Group;
-    if (!currentGroup) {
-      // Open table: any ball except 8-ball is legal
-      return ball.id !== 8;
-    }
+    if (!currentGroup) return ball.id !== 8;
 
     const remainingInGroup = this.balls.filter(b => !b.potted && this.getBallGroup(b.id) === currentGroup).length;
-    if (remainingInGroup === 0) {
-      return ball.id === 8;
-    }
+    if (remainingInGroup === 0) return ball.id === 8;
     return this.getBallGroup(b.id) === currentGroup;
   }
 
@@ -1147,11 +1292,6 @@ class BilliardsGame {
     return Math.min(...colors.map(c => c.snookerVal));
   }
 
-  /**
-   * ==========================================================================
-   * 4. RAYCAST AIMING & TRAJECTORY PREDICTION
-   * ==========================================================================
-   */
   computeAimPrediction() {
     const cue = this.getCueBall();
     if (!cue || cue.potted) return null;
@@ -1162,7 +1302,6 @@ class BilliardsGame {
     let minT = Infinity;
     let hitBall = null;
 
-    // 1. Check sphere-swept intersection with all active object balls
     const collisionDist = BALL_R * 2;
     for (const b of this.balls) {
       if (b.id === 0 || b.potted) continue;
@@ -1182,7 +1321,6 @@ class BilliardsGame {
       }
     }
 
-    // 2. Check cushion wall intersection if no closer ball
     const minX = PLAY_X + BALL_R;
     const maxX = PLAY_X + PLAY_W - BALL_R;
     const minY = PLAY_Y + BALL_R;
@@ -1214,7 +1352,6 @@ class BilliardsGame {
       objDirX = nx / len;
       objDirY = ny / len;
 
-      // Tangent direction for Cue Ball after impact + spin influence
       const dot = dx * objDirX + dy * objDirY;
       let tx = dx - dot * objDirX;
       let ty = dy - dot * objDirY;
@@ -1223,33 +1360,17 @@ class BilliardsGame {
         tx /= tLen;
         ty /= tLen;
       }
-      // Apply Top/Back spin curve preview
       cueDeflectX = tx + objDirX * (this.spinY * 0.55) - dy * (this.spinX * 0.25);
       cueDeflectY = ty + objDirY * (this.spinY * 0.55) + dx * (this.spinX * 0.25);
     }
 
-    return {
-      ghostX,
-      ghostY,
-      hitBall,
-      isLegal,
-      objDirX,
-      objDirY,
-      cueDeflectX,
-      cueDeflectY
-    };
+    return { ghostX, ghostY, hitBall, isLegal, objDirX, objDirY, cueDeflectX, cueDeflectY };
   }
 
-  /**
-   * ==========================================================================
-   * 5. EXECUTING SHOTS & SUB-STEPPED PHYSICS ENGINE
-   * ==========================================================================
-   */
   fireShot(powerRatio) {
     const cue = this.getCueBall();
     if (!cue || (this.state !== 'AIMING' && this.state !== 'BALL_IN_HAND' && this.state !== 'AI_THINKING')) return;
 
-    // Save snapshot for Practice Undo
     if (this.mode === 'practice') {
       this.historySnapshots.push(JSON.stringify(this.balls));
       if (this.historySnapshots.length > 10) this.historySnapshots.shift();
@@ -1260,8 +1381,15 @@ class BilliardsGame {
 
     cue.vx = Math.cos(this.aimAngle) * speed;
     cue.vy = Math.sin(this.aimAngle) * speed;
-    cue.spinY = this.spinY * speed * 0.42; // Follow / Draw
-    cue.spinX = this.spinX * speed * 0.35; // Left / Right English
+    cue.spinY = this.spinY * speed * 0.42;
+    cue.spinX = this.spinX * speed * 0.35;
+
+    if (this.mode === 'online_p2p' && this.conn && this.conn.open) {
+      this.conn.send({
+        type: 'SHOT',
+        vx: cue.vx, vy: cue.vy, spinX: cue.spinX, spinY: cue.spinY
+      });
+    }
 
     this.firstHitBall = null;
     this.pottedThisTurn = [];
@@ -1280,13 +1408,11 @@ class BilliardsGame {
     const dt = 1 / SUBSTEPS;
 
     for (let s = 0; s < SUBSTEPS; s++) {
-      // 1. Move balls
       for (const b of this.balls) {
         if (b.potted) continue;
         b.x += b.vx * dt;
         b.y += b.vy * dt;
 
-        // Check pocket capture
         for (const p of this.pockets) {
           const dist = Math.hypot(b.x - p.x, b.y - p.y);
           if (dist < p.r) {
@@ -1296,14 +1422,11 @@ class BilliardsGame {
         }
       }
 
-      // 2. Cushion segment & knuckle collisions
       for (const b of this.balls) {
         if (b.potted) continue;
 
-        // Check linear cushion segments
         for (const c of this.cushions) {
           if (c.nx !== 0) {
-            // Vertical rail (Left or Right)
             const minY = Math.min(c.y1, c.y2);
             const maxY = Math.max(c.y1, c.y2);
             if (b.y >= minY && b.y <= maxY) {
@@ -1322,7 +1445,6 @@ class BilliardsGame {
               }
             }
           } else {
-            // Horizontal rail (Top or Bottom)
             const minX = Math.min(c.x1, c.x2);
             const maxX = Math.max(c.x1, c.x2);
             if (b.x >= minX && b.x <= maxX) {
@@ -1343,7 +1465,6 @@ class BilliardsGame {
           }
         }
 
-        // Check pocket jaw knuckles (circular points)
         for (const k of this.knuckles) {
           const dx = b.x - k.x;
           const dy = b.y - k.y;
@@ -1363,7 +1484,6 @@ class BilliardsGame {
         }
       }
 
-      // 3. Elastic Ball-to-Ball Collisions
       const n = this.balls.length;
       const minDist = BALL_R * 2;
       for (let i = 0; i < n; i++) {
@@ -1380,21 +1500,17 @@ class BilliardsGame {
           if (dist < minDist && dist > 0.0001) {
             const nx = dx / dist;
             const ny = dy / dist;
-
-            // Separate overlapping spheres immediately
             const overlap = (minDist - dist) * 0.5;
             b1.x -= nx * overlap;
             b1.y -= ny * overlap;
             b2.x += nx * overlap;
             b2.y += ny * overlap;
 
-            // Relative velocity along normal
             const rvx = b1.vx - b2.vx;
             const rvy = b1.vy - b2.vy;
             const velAlongNormal = rvx * nx + rvy * ny;
 
             if (velAlongNormal > 0) {
-              // Record first object ball struck by cue ball for foul rules
               if (!this.firstHitBall) {
                 if (b1.id === 0) this.firstHitBall = b2;
                 else if (b2.id === 0) this.firstHitBall = b1;
@@ -1402,25 +1518,10 @@ class BilliardsGame {
 
               const restitution = 0.94;
               const impulse = velAlongNormal * restitution;
-
               b1.vx -= nx * impulse;
               b1.vy -= ny * impulse;
               b2.vx += nx * impulse;
               b2.vy += ny * impulse;
-
-              // Apply Cue Ball Top/Back spin ("English") on impact
-              if (b1.id === 0 && (Math.abs(b1.spinY) > 0.05 || Math.abs(b1.spinX) > 0.05)) {
-                b1.vx += nx * b1.spinY * 0.65 - ny * b1.spinX * 0.25;
-                b1.vy += ny * b1.spinY * 0.65 + nx * b1.spinX * 0.25;
-                b1.spinY *= 0.25;
-                b1.spinX *= 0.4;
-              } else if (b2.id === 0 && (Math.abs(b2.spinY) > 0.05 || Math.abs(b2.spinX) > 0.05)) {
-                b2.vx -= nx * b2.spinY * 0.65 + ny * b2.spinX * 0.25;
-                b2.vy -= ny * b2.spinY * 0.65 - nx * b2.spinX * 0.25;
-                b2.spinY *= 0.25;
-                b2.spinX *= 0.4;
-              }
-
               SFX.playBallClack(velAlongNormal);
             }
           }
@@ -1428,7 +1529,6 @@ class BilliardsGame {
       }
     }
 
-    // 4. Per-frame Rolling Friction & Stop Detection
     let anyMoving = false;
     for (const b of this.balls) {
       if (b.potted) continue;
@@ -1456,13 +1556,8 @@ class BilliardsGame {
     ball.vx = 0;
     ball.vy = 0;
 
-    // Trigger visual shrinking animation into pocket
     this.pocketAnims.push({
-      id: ball.id,
-      customHex: ball.customHex,
-      x: pocket.x,
-      y: pocket.y,
-      scale: 1.0
+      id: ball.id, customHex: ball.customHex, x: pocket.x, y: pocket.y, scale: 1.0
     });
 
     if (ball.id === 0) {
@@ -1485,31 +1580,25 @@ class BilliardsGame {
       div.style.background = `linear-gradient(180deg, #fff 20%, ${hex} 20%, ${hex} 80%, #fff 80%)`;
     } else {
       div.style.background = hex;
-      if (ball.id === 8 || hex === '#0f172a' || hex === '#2563eb' || hex === '#7c3aed') {
-        div.style.color = '#fff';
-      }
     }
     div.textContent = ball.id <= 15 ? ball.id : (ball.isRed ? 'R' : ball.snookerVal);
     rail.appendChild(div);
   }
 
-  /**
-   * ==========================================================================
-   * 6. RULES EVALUATION (8-BALL & SNOOKER STATE MACHINE)
-   * ==========================================================================
-   */
   evaluateTurnEnd() {
-    if (this.mode === 'practice') {
+    if (this.mode === 'practice' || this.mode === 'online_p2p') {
       if (this.cueScratched) {
         const cue = this.getCueBall();
         cue.potted = false;
         cue.x = PLAY_X + PLAY_W * 0.23;
         cue.y = PLAY_Y + PLAY_H / 2;
-        this.showToast('PRACTICE SCRATCH - BALL IN HAND');
+        this.showToast('SCRATCH - BALL IN HAND');
         this.state = 'BALL_IN_HAND';
       } else {
+        this.turn = (this.turn === 1) ? 2 : 1;
         this.state = 'AIMING';
       }
+      if (this.mode === 'online_p2p' && this.isHost) this.sendPeerSync();
       this.updateHUD();
       return;
     }
@@ -1519,38 +1608,37 @@ class BilliardsGame {
       return;
     }
 
-    // 8-BALL RULES EVALUATION
+    // 8-BALL RULES & AI COMPLETION GUARD
     const potted8 = this.pottedThisTurn.some(b => b.id === 8);
     const currentGroup = (this.turn === 1) ? this.p1Group : this.p2Group;
 
-    // 1. Check 8-Ball Potted (Win or Instant Loss)
     if (potted8) {
-      const remainingGroupBalls = currentGroup
-        ? this.balls.filter(b => !b.potted && this.getBallGroup(b.id) === currentGroup).length
-        : 7;
+      const remainingGroup = currentGroup ? this.balls.filter(b => !b.potted && this.getBallGroup(b.id) === currentGroup).length : 7;
+      const pName = this.turn === 1 ? 'YOU' : this.botName;
+      const oppName = this.turn === 1 ? this.botName : 'YOU';
 
-      const pName = this.getPlayerLabel(this.turn);
-      const oppName = this.getPlayerLabel(this.turn === 1 ? 2 : 1);
-
-      if (remainingGroupBalls === 0 && !this.cueScratched && this.firstHitBall && this.firstHitBall.id === 8) {
-        this.endMatch(pName + ' WINS!', `${pName} legally cleared the table and sank the 8-Ball!`);
+      if (remainingGroup === 0 && !this.cueScratched && this.firstHitBall && this.firstHitBall.id === 8) {
+        this.coins += this.stakeCoins;
+        this.updateCoinUI();
+        this.endMatch(pName + ' WINS!', `${pName} won ${this.stakeCoins} coins!`);
       } else {
-        this.endMatch(oppName + ' WINS!', `${pName} committed a fatal foul on the 8-Ball!`);
+        this.coins = Math.max(0, this.coins - this.stakeCoins);
+        this.updateCoinUI();
+        this.endMatch(oppName + ' WINS!', `${pName} made a foul on 8-Ball and lost ${this.stakeCoins} coins!`);
       }
       return;
     }
 
-    // 2. Check Fouls (Scratch, No Hit, or Wrong First Ball)
     let foulReason = null;
     if (this.cueScratched) {
       foulReason = 'FOUL! CUE BALL SCRATCHED';
     } else if (!this.firstHitBall) {
       foulReason = 'FOUL! NO BALL HIT';
     } else if (currentGroup) {
-      const remainingGroupBalls = this.balls.filter(b => !b.potted && this.getBallGroup(b.id) === currentGroup).length;
+      const remaining = this.balls.filter(b => !b.potted && this.getBallGroup(b.id) === currentGroup).length;
       const hitGroup = this.getBallGroup(this.firstHitBall.id);
-      if (remainingGroupBalls > 0 && hitGroup !== currentGroup) {
-        foulReason = `FOUL! MUST HIT ${currentGroup} FIRST`;
+      if (remaining > 0 && hitGroup !== currentGroup) {
+        foulReason = `FOUL! MUST HIT YOUR GROUP FIRST`;
       }
     } else if (!currentGroup && this.firstHitBall.id === 8) {
       foulReason = 'FOUL! CANNOT HIT 8-BALL ON OPEN TABLE';
@@ -1569,7 +1657,7 @@ class BilliardsGame {
       this.showToast(`${foulReason} • BALL IN HAND`);
       this.updateHUD();
 
-      if (this.isAITurn()) {
+      if (this.turn === 2) {
         this.placeAICueBallInHand();
         this.triggerAITurn();
       } else {
@@ -1578,11 +1666,9 @@ class BilliardsGame {
       return;
     }
 
-    // 3. Legal Shot — Check Group Assignment & Legal Pots
     let keptTurn = false;
     if (this.pottedThisTurn.length > 0) {
       if (!this.p1Group && !this.p2Group) {
-        // Assign Solids/Stripes based on first potted ball
         const firstPot = this.pottedThisTurn[0];
         const g = this.getBallGroup(firstPot.id);
         if (g) {
@@ -1593,7 +1679,7 @@ class BilliardsGame {
             this.p2Group = g;
             this.p1Group = (g === 'SOLIDS') ? 'STRIPES' : 'SOLIDS';
           }
-          this.showToast(`${this.getPlayerLabel(this.turn)} ASSIGNED ${g}!`);
+          this.showToast(`${this.turn === 1 ? 'YOU' : this.botName} ASSIGNED ${g}!`);
           keptTurn = true;
         }
       } else {
@@ -1606,13 +1692,13 @@ class BilliardsGame {
 
     if (!keptTurn) {
       this.turn = (this.turn === 1) ? 2 : 1;
-      this.showToast(`${this.getPlayerLabel(this.turn)}'S TURN`);
+      this.showToast(`${this.turn === 1 ? 'YOUR' : this.botName + "'S"} TURN`);
     }
 
     this.turnTimeLeft = this.turnTimeMax;
     this.updateHUD();
 
-    if (this.isAITurn()) {
+    if (this.turn === 2) {
       this.triggerAITurn();
     } else {
       this.state = 'AIMING';
@@ -1625,7 +1711,6 @@ class BilliardsGame {
       foul = true;
     }
 
-    // Respot any potted colored balls if Reds still remain or if potted on a foul
     const redsRemain = this.balls.some(b => !b.potted && b.isRed);
     this.pottedThisTurn.forEach(b => {
       if (!b.isRed) {
@@ -1660,27 +1745,30 @@ class BilliardsGame {
 
       if (this.snookerTarget === 'RED') {
         this.snookerTarget = 'COLOR_ANY';
-        this.showToast(`+${pts} PTS! NOW TARGET ANY COLOR`);
+        this.showToast(`+${pts} PTS! NOW TARGET COLOR`);
       } else {
         this.snookerTarget = redsRemain ? 'RED' : this.getLowestColorVal();
       }
     } else {
       this.turn = (this.turn === 1) ? 2 : 1;
       this.snookerTarget = redsRemain ? 'RED' : this.getLowestColorVal();
-      this.showToast(`${this.getPlayerLabel(this.turn)}'S TURN`);
+      this.showToast(`${this.turn === 1 ? 'YOUR' : this.botName + "'S"} TURN`);
     }
 
-    // Check if all Snooker balls are cleared
     const activeLeft = this.balls.filter(b => !b.potted && b.id !== 0).length;
     if (activeLeft === 0) {
-      const winText = this.p1Score >= this.p2Score ? 'YOU WIN SNOOKER!' : 'PRO BOT WINS!';
-      this.endMatch(winText, `Final Score: YOU ${this.p1Score} - ${this.p2Score} PRO BOT`);
+      const won = this.p1Score >= this.p2Score;
+      if (won) this.coins += this.stakeCoins;
+      else this.coins = Math.max(0, this.coins - this.stakeCoins);
+      this.updateCoinUI();
+      const winText = won ? 'YOU WIN SNOOKER!' : `${this.botName.toUpperCase()} WINS!`;
+      this.endMatch(winText, `Score: YOU ${this.p1Score} - ${this.p2Score} ${this.botName}`);
       return;
     }
 
     this.turnTimeLeft = this.turnTimeMax;
     this.updateHUD();
-    if (this.isAITurn()) this.triggerAITurn();
+    if (this.turn === 2) this.triggerAITurn();
     else this.state = 'AIMING';
   }
 
@@ -1698,15 +1786,6 @@ class BilliardsGame {
     }
   }
 
-  /**
-   * ==========================================================================
-   * 7. SMART AI BOT SHOT PLANNER
-   * ==========================================================================
-   */
-  isAITurn() {
-    return (this.mode === '8ball_ai' || this.mode === 'snooker_ai') && this.turn === 2;
-  }
-
   placeAICueBallInHand() {
     const cue = this.getCueBall();
     cue.x = PLAY_X + PLAY_W * 0.25;
@@ -1714,6 +1793,7 @@ class BilliardsGame {
     this.resolveCueOverlap(cue);
   }
 
+  // ROBUST AI BOT TURN TRIGGER (Never freezes/stops)
   triggerAITurn() {
     this.state = 'AI_THINKING';
     const cue = this.getCueBall();
@@ -1724,7 +1804,6 @@ class BilliardsGame {
 
     for (const target of legalBalls) {
       for (const pocket of this.pockets) {
-        // Aim point on target ball opposite the pocket
         const toPocketX = pocket.x - target.x;
         const toPocketY = pocket.y - target.y;
         const distToPocket = Math.hypot(toPocketX, toPocketY);
@@ -1740,11 +1819,9 @@ class BilliardsGame {
         const gnx = toGhostX / distToGhost;
         const gny = toGhostY / distToGhost;
 
-        // Cut angle cosine (must be > 0.30 so it's a realistic cut < 72 deg)
         const cutDot = gnx * pnx + gny * pny;
-        if (cutDot < 0.30) continue;
+        if (cutDot < 0.20) continue;
 
-        // Check path obstructions
         if (!this.isPathClear(cue.x, cue.y, ghostX, ghostY, [cue.id, target.id])) continue;
         if (!this.isPathClear(target.x, target.y, pocket.x, pocket.y, [cue.id, target.id])) continue;
 
@@ -1753,32 +1830,35 @@ class BilliardsGame {
           bestScore = score;
           bestShot = {
             angle: Math.atan2(toGhostY, toGhostX),
-            power: Math.min(0.88, Math.max(0.32, (distToGhost + distToPocket) / 720))
+            power: Math.min(0.85, Math.max(0.35, (distToGhost + distToPocket) / 750))
           };
         }
       }
     }
 
-    // Fallback safety shot towards nearest legal ball if all pockets blocked
-    if (!bestShot && legalBalls.length > 0) {
-      const t = legalBalls[0];
-      bestShot = {
-        angle: Math.atan2(t.y - cue.y, t.x - cue.x) + (Math.random() - 0.5) * 0.03,
-        power: 0.45
-      };
-    } else if (bestShot) {
-      // Slight human-like imperfection
-      bestShot.angle += (Math.random() - 0.5) * 0.0085;
+    if (!bestShot) {
+      // Fallback guaranteed shot so AI never gets stuck
+      const fallbackTarget = legalBalls[0] || this.balls.find(b => !b.potted && b.id !== 0);
+      if (fallbackTarget) {
+        bestShot = {
+          angle: Math.atan2(fallbackTarget.y - cue.y, fallbackTarget.x - cue.x) + (Math.random() - 0.5) * 0.05,
+          power: 0.45
+        };
+      } else {
+        bestShot = { angle: Math.random() * Math.PI * 2, power: 0.4 };
+      }
+    } else {
+      bestShot.angle += (Math.random() - 0.5) * 0.01;
     }
 
     const startAngle = this.aimAngle;
-    const targetAngle = bestShot ? bestShot.angle : 0;
-    const targetPower = bestShot ? bestShot.power : 0.5;
+    const targetAngle = bestShot.angle;
+    const targetPower = bestShot.power;
     const startTime = performance.now();
 
     const animateAI = (now) => {
       if (this.state !== 'AI_THINKING') return;
-      const t = Math.min(1, (now - startTime) / 1150);
+      const t = Math.min(1, (now - startTime) / 1000);
       const ease = 1 - Math.pow(1 - t, 3);
       this.aimAngle = startAngle + (targetAngle - startAngle) * ease;
       this.pullPower = ease * targetPower;
@@ -1812,11 +1892,6 @@ class BilliardsGame {
     return true;
   }
 
-  /**
-   * ==========================================================================
-   * 8. PROCEDURAL HD CANVAS RENDERER
-   * ==========================================================================
-   */
   render() {
     const ctx = this.ctx;
     ctx.save();
@@ -1834,7 +1909,6 @@ class BilliardsGame {
   }
 
   drawTable(ctx) {
-    // 1. Outer Mahogany Wood Frame with Rounded Corners
     const frameGrad = ctx.createLinearGradient(0, 0, 0, LOGICAL_H);
     frameGrad.addColorStop(0, '#4a210b');
     frameGrad.addColorStop(0.5, '#2b1104');
@@ -1843,13 +1917,11 @@ class BilliardsGame {
     this.roundRect(ctx, 4, 4, LOGICAL_W - 8, LOGICAL_H - 8, 28);
     ctx.fill();
 
-    // Metallic Gold Trim Border
     ctx.strokeStyle = '#d97706';
     ctx.lineWidth = 2.5;
     this.roundRect(ctx, 10, 10, LOGICAL_W - 20, LOGICAL_H - 20, 24);
     ctx.stroke();
 
-    // 2. Playing Surface Felt with Radial Lighting
     const felt = FELT_THEMES[this.feltStyle] || FELT_THEMES.emerald;
     const feltGrad = ctx.createRadialGradient(
       LOGICAL_W / 2, LOGICAL_H / 2, 50,
@@ -1860,12 +1932,10 @@ class BilliardsGame {
     ctx.fillStyle = feltGrad;
     ctx.fillRect(PLAY_X - 10, PLAY_Y - 10, PLAY_W + 20, PLAY_H + 20);
 
-    // Cushion Rubber Banks Shadow
     ctx.strokeStyle = 'rgba(0,0,0,0.45)';
     ctx.lineWidth = 6;
     ctx.strokeRect(PLAY_X, PLAY_Y, PLAY_W, PLAY_H);
 
-    // 3. Baulk Line, Head Spot, Foot Spot & Snooker "D"
     ctx.strokeStyle = felt.line;
     ctx.lineWidth = 1.6;
     const baulkX = PLAY_X + PLAY_W * 0.23;
@@ -1880,36 +1950,17 @@ class BilliardsGame {
       ctx.stroke();
     }
 
-    // Foot Spot
     ctx.fillStyle = 'rgba(255,255,255,0.35)';
     ctx.beginPath();
     ctx.arc(PLAY_X + PLAY_W * 0.73, PLAY_Y + PLAY_H / 2, 3.5, 0, Math.PI * 2);
     ctx.fill();
 
-    // 4. Diamond Rail Sights
-    ctx.fillStyle = '#fbbf24';
-    const sightSections = 8;
-    for (let i = 1; i < sightSections; i++) {
-      if (i === 4) continue; // Center pocket
-      const sx = PLAY_X + (PLAY_W / sightSections) * i;
-      this.drawDiamond(ctx, sx, PLAY_Y / 2 + 2, 4);
-      this.drawDiamond(ctx, sx, LOGICAL_H - PLAY_Y / 2 - 2, 4);
-    }
-    for (let j = 1; j < 4; j++) {
-      const sy = PLAY_Y + (PLAY_H / 4) * j;
-      this.drawDiamond(ctx, PLAY_X / 2 + 2, sy, 4);
-      this.drawDiamond(ctx, LOGICAL_W - PLAY_X / 2 - 2, sy, 4);
-    }
-
-    // 5. Six Pockets with Brass/Gold Castings
     for (const p of this.pockets) {
-      // Outer metallic rim
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.r + 5, 0, Math.PI * 2);
       ctx.fillStyle = '#92400e';
       ctx.fill();
 
-      // Deep hole shadow
       const pGrad = ctx.createRadialGradient(p.x, p.y, p.r * 0.2, p.x, p.y, p.r);
       pGrad.addColorStop(0, '#000000');
       pGrad.addColorStop(0.75, '#090d16');
@@ -1945,7 +1996,6 @@ class BilliardsGame {
     for (const b of this.balls) {
       if (b.potted) continue;
 
-      // 1. Soft Table Drop Shadow
       ctx.beginPath();
       ctx.arc(b.x + 2.5, b.y + 3.5, BALL_R, 0, Math.PI * 2);
       ctx.fillStyle = 'rgba(0, 0, 0, 0.42)';
@@ -1960,19 +2010,15 @@ class BilliardsGame {
       const baseColor = b.customHex || cInfo.hex;
 
       if (cInfo.stripe && !b.customHex) {
-        // White base sphere for Stripes (9-15)
         ctx.fillStyle = '#f8fafc';
         ctx.fillRect(b.x - BALL_R, b.y - BALL_R, BALL_R * 2, BALL_R * 2);
-        // Thick middle colored band
         ctx.fillStyle = baseColor;
         ctx.fillRect(b.x - BALL_R, b.y - BALL_R * 0.55, BALL_R * 2, BALL_R * 1.1);
       } else {
-        // Solid sphere base
         ctx.fillStyle = baseColor;
         ctx.fillRect(b.x - BALL_R, b.y - BALL_R, BALL_R * 2, BALL_R * 2);
       }
 
-      // Number circle badge for standard 1-15 pool balls
       if (b.id >= 1 && b.id <= 15) {
         ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
         ctx.beginPath();
@@ -1986,7 +2032,6 @@ class BilliardsGame {
         ctx.fillText(String(b.id), b.x, b.y + 0.5);
       }
 
-      // 3D Spherical Shading & Glossy Specular Highlight
       const shadeGrad = ctx.createRadialGradient(
         b.x - BALL_R * 0.35, b.y - BALL_R * 0.35, BALL_R * 0.1,
         b.x, b.y, BALL_R
@@ -1999,7 +2044,6 @@ class BilliardsGame {
 
       ctx.restore();
 
-      // Ball-in-Hand pulsing indicator on Cue Ball
       if (b.id === 0 && this.state === 'BALL_IN_HAND') {
         ctx.save();
         ctx.strokeStyle = '#00f2fe';
@@ -2019,7 +2063,6 @@ class BilliardsGame {
 
     const pred = this.computeAimPrediction();
     if (pred) {
-      // 1. Primary Aim Line from Cue Ball to Ghost Ball
       ctx.save();
       ctx.beginPath();
       ctx.moveTo(cue.x, cue.y);
@@ -2028,7 +2071,6 @@ class BilliardsGame {
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      // 2. Ghost Ball Indicator Circle
       ctx.beginPath();
       ctx.arc(pred.ghostX, pred.ghostY, BALL_R, 0, Math.PI * 2);
       ctx.strokeStyle = pred.isLegal ? '#ffffff' : '#ef4444';
@@ -2036,7 +2078,6 @@ class BilliardsGame {
       ctx.stroke();
 
       if (!pred.isLegal) {
-        // Red Stop / Cross icon inside Ghost Ball for illegal target
         ctx.beginPath();
         ctx.moveTo(pred.ghostX - 6, pred.ghostY - 6);
         ctx.lineTo(pred.ghostX + 6, pred.ghostY + 6);
@@ -2046,7 +2087,6 @@ class BilliardsGame {
         ctx.lineWidth = 2.6;
         ctx.stroke();
       } else if (pred.hitBall) {
-        // 3. Post-Impact Object Ball Prediction Line
         ctx.beginPath();
         ctx.moveTo(pred.hitBall.x, pred.hitBall.y);
         ctx.lineTo(pred.hitBall.x + pred.objDirX * 115, pred.hitBall.y + pred.objDirY * 115);
@@ -2054,7 +2094,6 @@ class BilliardsGame {
         ctx.lineWidth = 2.4;
         ctx.stroke();
 
-        // 4. Post-Impact Cue Ball Deflection Line
         ctx.beginPath();
         ctx.moveTo(pred.ghostX, pred.ghostY);
         ctx.lineTo(pred.ghostX + pred.cueDeflectX * 65, pred.ghostY + pred.cueDeflectY * 65);
@@ -2066,7 +2105,6 @@ class BilliardsGame {
       ctx.restore();
     }
 
-    // 5. Render 3D Tapered Cue Stick pulled back by pullPower
     ctx.save();
     ctx.translate(cue.x, cue.y);
     ctx.rotate(this.aimAngle + Math.PI);
@@ -2074,36 +2112,12 @@ class BilliardsGame {
     const pullOffset = 18 + this.pullPower * 85;
     const cueLen = 280;
 
-    // Cue Shadow
-    ctx.fillStyle = 'rgba(0,0,0,0.45)';
-    ctx.beginPath();
-    ctx.moveTo(pullOffset, 4);
-    ctx.lineTo(pullOffset + cueLen, 7);
-    ctx.lineTo(pullOffset + cueLen, 13);
-    ctx.lineTo(pullOffset, 8);
-    ctx.fill();
-
-    // Cue Body Styling
     const cueGrad = ctx.createLinearGradient(pullOffset, 0, pullOffset + cueLen, 0);
-    if (this.cueStyle === 'neon') {
-      cueGrad.addColorStop(0, '#f8fafc');
-      cueGrad.addColorStop(0.03, '#00f2fe');
-      cueGrad.addColorStop(0.45, '#1e293b');
-      cueGrad.addColorStop(0.50, '#ec4899');
-      cueGrad.addColorStop(1, '#090d16');
-    } else if (this.cueStyle === 'gold') {
-      cueGrad.addColorStop(0, '#f8fafc');
-      cueGrad.addColorStop(0.03, '#fbbf24');
-      cueGrad.addColorStop(0.48, '#fef3c7');
-      cueGrad.addColorStop(0.52, '#b45309');
-      cueGrad.addColorStop(1, '#451a03');
-    } else {
-      cueGrad.addColorStop(0, '#38bdf8');
-      cueGrad.addColorStop(0.02, '#f8fafc');
-      cueGrad.addColorStop(0.45, '#fde68a');
-      cueGrad.addColorStop(0.48, '#78350f');
-      cueGrad.addColorStop(1, '#270e03');
-    }
+    cueGrad.addColorStop(0, '#38bdf8');
+    cueGrad.addColorStop(0.02, '#f8fafc');
+    cueGrad.addColorStop(0.45, '#fde68a');
+    cueGrad.addColorStop(0.48, '#78350f');
+    cueGrad.addColorStop(1, '#270e03');
 
     ctx.fillStyle = cueGrad;
     ctx.beginPath();
@@ -2126,36 +2140,19 @@ class BilliardsGame {
     ctx.closePath();
   }
 
-  drawDiamond(ctx, x, y, size) {
-    ctx.beginPath();
-    ctx.moveTo(x, y - size);
-    ctx.lineTo(x + size, y);
-    ctx.lineTo(x, y + size);
-    ctx.lineTo(x - size, y);
-    ctx.closePath();
-    ctx.fill();
-  }
-
-  /**
-   * ==========================================================================
-   * 9. HUD UPDATES, TIMERS & INTERACTIVE CONTROLS
-   * ==========================================================================
-   */
   updateHUD() {
     const p1Card = document.getElementById('p1-card');
     const p2Card = document.getElementById('p2-card');
     p1Card.classList.toggle('active-turn', this.turn === 1);
     p2Card.classList.toggle('active-turn', this.turn === 2);
 
-    const isHumanTurn = !this.isAITurn() && (this.state === 'AIMING' || this.state === 'BALL_IN_HAND');
+    const isHumanTurn = (this.turn === 1 && !this.isAITurn()) || (this.mode === 'online_p2p');
     document.getElementById('power-panel').classList.toggle('disabled', !isHumanTurn);
     document.getElementById('aim-panel').classList.toggle('disabled', !isHumanTurn);
 
     if (this.mode === 'snooker_ai') {
       document.getElementById('p1-group').textContent = `${this.p1Score} PTS`;
       document.getElementById('p2-group').textContent = `${this.p2Score} PTS`;
-      document.getElementById('p1-slots').innerHTML = `<span style="font-size:10px;color:#cbd5e1;">Target: ${this.snookerTarget}</span>`;
-      document.getElementById('p2-slots').innerHTML = `<span style="font-size:10px;color:#cbd5e1;">Target: ${this.snookerTarget}</span>`;
       return;
     }
 
@@ -2219,9 +2216,8 @@ class BilliardsGame {
     this.toastTimeout = setTimeout(() => t.classList.remove('show'), 2300);
   }
 
-  getPlayerLabel(turnNum) {
-    if (this.mode === 'pass_play') return turnNum === 1 ? 'PLAYER 1' : 'PLAYER 2';
-    return turnNum === 1 ? 'YOU' : 'PRO BOT';
+  isAITurn() {
+    return (this.mode === '8ball_ai' || this.mode === 'snooker_ai') && this.turn === 2;
   }
 
   endMatch(title, reason) {
@@ -2240,15 +2236,9 @@ class BilliardsGame {
     document.getElementById('menu-modal').classList.remove('hidden');
   }
 
-  /**
-   * ==========================================================================
-   * 10. UNIFIED POINTER EVENTS (TABLE AIM, POWER SLIDER, FINE WHEEL, SPIN)
-   * ==========================================================================
-   */
   bindEvents() {
     window.addEventListener('resize', () => this.resize());
 
-    // 1. Canvas Table Aiming & Ball-in-Hand Placement
     let draggingCueBall = false;
     let aimingTable = false;
 
@@ -2263,6 +2253,8 @@ class BilliardsGame {
     this.canvas.addEventListener('pointerdown', (e) => {
       SFX.init();
       if (this.isAITurn() || (this.state !== 'AIMING' && this.state !== 'BALL_IN_HAND')) return;
+      if (this.mode === 'online_p2p' && this.turn !== 1) return; // Prevent playing out of turn in P2P
+
       const pos = getLogicalPos(e);
       const cue = this.getCueBall();
 
@@ -2293,14 +2285,10 @@ class BilliardsGame {
       }
     });
 
-    const endCanvasDrag = () => {
-      draggingCueBall = false;
-      aimingTable = false;
-    };
+    const endCanvasDrag = () => { draggingCueBall = false; aimingTable = false; };
     this.canvas.addEventListener('pointerup', endCanvasDrag);
     this.canvas.addEventListener('pointercancel', endCanvasDrag);
 
-    // 2. Left Vertical Power Slider
     const powerTrack = document.getElementById('power-track');
     let pullingPower = false;
     let powerStartY = 0;
@@ -2308,6 +2296,7 @@ class BilliardsGame {
     powerTrack.addEventListener('pointerdown', (e) => {
       SFX.init();
       if (this.isAITurn() || (this.state !== 'AIMING' && this.state !== 'BALL_IN_HAND')) return;
+      if (this.mode === 'online_p2p' && this.turn !== 1) return;
       pullingPower = true;
       powerStartY = e.clientY;
       powerTrack.setPointerCapture(e.pointerId);
@@ -2334,7 +2323,6 @@ class BilliardsGame {
     powerTrack.addEventListener('pointerup', releasePower);
     powerTrack.addEventListener('pointercancel', releasePower);
 
-    // 3. Right Fine-Tune Aim Wheel
     const aimWheel = document.getElementById('aim-wheel');
     let wheelActive = false;
     let lastWheelY = 0;
@@ -2351,7 +2339,7 @@ class BilliardsGame {
       if (!wheelActive) return;
       const dy = e.clientY - lastWheelY;
       lastWheelY = e.clientY;
-      this.aimAngle += dy * 0.0016; // Ultra-fine rotation
+      this.aimAngle += dy * 0.0016;
       wheelBgOffset = (wheelBgOffset + dy) % 16;
       aimWheel.style.backgroundPositionY = wheelBgOffset + 'px';
     });
@@ -2360,7 +2348,6 @@ class BilliardsGame {
     aimWheel.addEventListener('pointerup', endWheel);
     aimWheel.addEventListener('pointercancel', endWheel);
 
-    // 4. Cue Ball Spin ("English") Modal
     document.getElementById('spin-btn').addEventListener('click', () => {
       document.getElementById('spin-modal').classList.remove('hidden');
     });
@@ -2374,12 +2361,9 @@ class BilliardsGame {
       let dx = (e.clientX - rect.left - cx) / (cx * 0.78);
       let dy = (e.clientY - rect.top - cy) / (cy * 0.78);
       const mag = Math.hypot(dx, dy);
-      if (mag > 1) {
-        dx /= mag;
-        dy /= mag;
-      }
+      if (mag > 1) { dx /= mag; dy /= mag; }
       this.spinX = dx;
-      this.spinY = -dy; // Up is positive Follow, Down is negative Draw
+      this.spinY = -dy;
 
       const pctX = 50 + dx * 38;
       const pctY = 50 + dy * 38;
@@ -2394,12 +2378,9 @@ class BilliardsGame {
       updateSpinFromEvent(e);
       spinWheel.setPointerCapture(e.pointerId);
     });
-    spinWheel.addEventListener('pointermove', (e) => {
-      if (draggingSpin) updateSpinFromEvent(e);
-    });
+    spinWheel.addEventListener('pointermove', (e) => { if (draggingSpin) updateSpinFromEvent(e); });
     spinWheel.addEventListener('pointerup', () => { draggingSpin = false; });
 
-    // 5. Top HUD Buttons & Menu Pills
     document.getElementById('menu-btn').addEventListener('click', () => {
       document.getElementById('menu-modal').classList.remove('hidden');
     });
@@ -2425,19 +2406,19 @@ class BilliardsGame {
       }
     });
 
+    document.querySelectorAll('#stake-pills .pill').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#stake-pills .pill').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this.stakeCoins = parseInt(btn.dataset.stake);
+      });
+    });
+
     document.querySelectorAll('#cue-pills .pill').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('#cue-pills .pill').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         this.cueStyle = btn.dataset.cue;
-      });
-    });
-
-    document.querySelectorAll('#felt-pills .pill').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('#felt-pills .pill').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        this.feltStyle = btn.dataset.felt;
       });
     });
   }
@@ -2463,11 +2444,6 @@ class BilliardsGame {
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
-  /**
-   * ==========================================================================
-   * 11. MAIN GAME LOOP & TURN TIMER
-   * ==========================================================================
-   */
   loop(now) {
     const dtSec = Math.min(0.1, (now - this.lastFrameTime) / 1000);
     this.lastFrameTime = now;
@@ -2495,9 +2471,9 @@ class BilliardsGame {
       if (this.turnTimeLeft <= 0) {
         this.turn = (this.turn === 1) ? 2 : 1;
         this.turnTimeLeft = this.turnTimeMax;
-        this.showToast('TIME OUT FOUL! BALL IN HAND');
+        this.showToast('TIME OUT! TURN SWITCHED');
         this.updateHUD();
-        if (this.isAITurn()) {
+        if (this.turn === 2 && this.isAITurn()) {
           this.placeAICueBallInHand();
           this.triggerAITurn();
         } else {
