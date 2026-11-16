@@ -1,2496 +1,393 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>8 Ball Pool & Snooker Pro - Gamerkie Edition</title>
-<!-- PeerJS CDN for Serverless P2P Online Multiplayer -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#06120f">
+<title>8 Ball Pool Pro — GamerKie Edition</title>
+<meta name="description" content="Play realistic 8-ball pool, quick snooker, solo practice and private Peer-to-Peer matches in GamerKie Pool Pro.">
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <style>
-  :root {
-    --bg-dark: #070b14;
-    --panel-bg: rgba(13, 20, 36, 0.92);
-    --neon-cyan: #00f2fe;
-    --neon-gold: #fbbf24;
-    --neon-green: #10b981;
-    --neon-red: #ef4444;
-    --border-glow: rgba(0, 242, 254, 0.35);
-  }
-  * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    user-select: none;
-    -webkit-user-select: none;
-    touch-action: none;
-    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  }
-  html, body {
-    width: 100vw;
-    height: 100vh;
-    overflow: hidden;
-    background: radial-gradient(circle at center, #111a2e 0%, #050811 100%);
-    color: #fff;
-  }
-  #app {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  /* TOP PLAY STORE HUD BAR */
-  #top-hud {
-    width: 100%;
-    height: 62px;
-    background: linear-gradient(180deg, rgba(10,16,30,0.96) 0%, rgba(10,16,30,0.75) 100%);
-    border-bottom: 1px solid var(--border-glow);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 12px;
-    z-index: 20;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.6);
-  }
-  .player-card {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 10px;
-    padding: 4px 10px;
-    min-width: 215px;
-    position: relative;
-    transition: all 0.25s ease;
-  }
-  .player-card.active-turn {
-    border-color: var(--neon-cyan);
-    box-shadow: 0 0 14px rgba(0, 242, 254, 0.35);
-    background: rgba(0, 242, 254, 0.08);
-  }
-  .player-card.right {
-    flex-direction: row-reverse;
-    text-align: right;
-  }
-  .avatar-wrap {
-    position: relative;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #1e293b, #0f172a);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 800;
-    font-size: 15px;
-    color: var(--neon-cyan);
-    border: 2px solid rgba(255,255,255,0.2);
-    flex-shrink: 0;
-  }
-  .timer-svg {
-    position: absolute;
-    top: -3px;
-    left: -3px;
-    width: 46px;
-    height: 46px;
-    transform: rotate(-90deg);
-    pointer-events: none;
-  }
-  .timer-circle {
-    fill: none;
-    stroke: var(--neon-green);
-    stroke-width: 3.2;
-    stroke-dasharray: 126;
-    stroke-dashoffset: 0;
-    transition: stroke-dashoffset 0.2s linear, stroke 0.2s;
-  }
-  .p-info {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    flex: 1;
-  }
-  .p-name-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 6px;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-  }
-  .p-right .p-name-row {
-    flex-direction: row-reverse;
-  }
-  .p-group-badge {
-    font-size: 10px;
-    padding: 1px 6px;
-    border-radius: 4px;
-    background: rgba(255,255,255,0.12);
-    color: var(--neon-gold);
-    font-weight: 800;
-  }
-  .ball-slots {
-    display: flex;
-    gap: 4px;
-    align-items: center;
-    min-height: 16px;
-  }
-  .player-card.right .ball-slots {
-    justify-content: flex-end;
-  }
-  .mini-ball {
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    border: 1px solid rgba(255,255,255,0.25);
-    background: rgba(255,255,255,0.06);
-    position: relative;
-    overflow: hidden;
-  }
-
-  /* CENTER HUD CONTROLS */
-  .hud-center {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .coin-badge {
-    background: rgba(251, 191, 36, 0.15);
-    border: 1px solid var(--neon-gold);
-    color: var(--neon-gold);
-    padding: 5px 10px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 800;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    box-shadow: 0 0 10px rgba(251,191,36,0.2);
-  }
-  .hud-btn {
-    background: rgba(255,255,255,0.07);
-    border: 1px solid rgba(255,255,255,0.18);
-    color: #fff;
-    border-radius: 8px;
-    padding: 6px 10px;
-    font-size: 12px;
-    font-weight: 700;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    transition: all 0.15s;
-  }
-  .hud-btn:hover, .hud-btn:active {
-    background: rgba(0, 242, 254, 0.18);
-    border-color: var(--neon-cyan);
-  }
-  #spin-btn {
-    width: 42px;
-    height: 42px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 35% 35%, #ffffff, #d1d5db 65%, #9ca3af 100%);
-    border: 2px solid var(--neon-cyan);
-    position: relative;
-    cursor: pointer;
-    box-shadow: 0 0 10px rgba(0,242,254,0.4);
-    padding: 0;
-  }
-  #spin-dot-mini {
-    width: 8px;
-    height: 8px;
-    background: var(--neon-red);
-    border-radius: 50%;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    box-shadow: 0 0 4px #000;
-  }
-
-  /* MIDDLE ARENA (LEFT POWER + TABLE CANVAS + RIGHT FINE AIM) */
-  #arena {
-    flex: 1;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    position: relative;
-    padding: 4px 8px;
-    overflow: hidden;
-  }
-
-  /* LEFT VERTICAL POWER SLIDER */
-  .side-control {
-    width: 52px;
-    height: 78%;
-    max-height: 360px;
-    background: var(--panel-bg);
-    border: 1px solid rgba(255,255,255,0.16);
-    border-radius: 14px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 8px 4px;
-    z-index: 15;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.65);
-    position: relative;
-  }
-  .side-control.disabled {
-    opacity: 0.35;
-    pointer-events: none;
-  }
-  .side-label {
-    font-size: 9px;
-    font-weight: 800;
-    letter-spacing: 0.8px;
-    color: #94a3b8;
-    margin-bottom: 6px;
-    text-transform: uppercase;
-  }
-  #power-track {
-    flex: 1;
-    width: 30px;
-    background: #090d16;
-    border-radius: 15px;
-    border: 1px solid rgba(255,255,255,0.2);
-    position: relative;
-    overflow: hidden;
-    cursor: ns-resize;
-  }
-  #power-fill {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 0%;
-    background: linear-gradient(180deg, #10b981 0%, #f59e0b 55%, #ef4444 100%);
-    opacity: 0.75;
-    transition: height 0.04s linear;
-  }
-  #power-cue-graphic {
-    position: absolute;
-    top: 8px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 8px;
-    height: 90%;
-    border-radius: 4px;
-    background: linear-gradient(180deg, #f8fafc 0%, #f8fafc 6%, #d97706 6%, #fcd34d 45%, #78350f 46%, #451a03 100%);
-    box-shadow: 0 2px 6px rgba(0,0,0,0.8);
-    pointer-events: none;
-  }
-  #power-pct {
-    font-size: 10px;
-    font-weight: 800;
-    color: var(--neon-gold);
-    margin-top: 5px;
-  }
-
-  /* RIGHT FINE-TUNE AIM WHEEL */
-  #aim-wheel {
-    flex: 1;
-    width: 32px;
-    background: repeating-linear-gradient(
-      0deg,
-      #0f172a 0px,
-      #0f172a 8px,
-      #1e293b 8px,
-      #1e293b 16px
-    );
-    border-radius: 10px;
-    border: 1px solid rgba(0, 242, 254, 0.3);
-    position: relative;
-    overflow: hidden;
-    cursor: ns-resize;
-  }
-  #aim-wheel::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(180deg, rgba(7,11,20,0.85) 0%, transparent 25%, transparent 75%, rgba(7,11,20,0.85) 100%);
-    pointer-events: none;
-  }
-
-  /* CANVAS CONTAINER */
-  #canvas-wrap {
-    flex: 1;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    overflow: hidden;
-  }
-  canvas {
-    display: block;
-    max-width: 100%;
-    max-height: 100%;
-    filter: drop-shadow(0 14px 32px rgba(0,0,0,0.85));
-  }
-
-  /* BOTTOM BALL RETURN RAIL & CONTROLS */
-  #bottom-bar {
-    width: 100%;
-    height: 36px;
-    background: rgba(8, 12, 24, 0.92);
-    border-top: 1px solid rgba(255,255,255,0.1);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 14px;
-    z-index: 20;
-    font-size: 12px;
-  }
-  #pocketed-rail {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: #04070e;
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 14px;
-    padding: 3px 12px;
-    min-width: 220px;
-    height: 26px;
-    overflow-x: auto;
-  }
-  .rail-label {
-    font-size: 10px;
-    color: #64748b;
-    font-weight: 700;
-    margin-right: 4px;
-  }
-  .rail-ball {
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 9px;
-    font-weight: 900;
-    color: #000;
-    box-shadow: inset -2px -2px 4px rgba(0,0,0,0.6), 0 1px 3px rgba(0,0,0,0.8);
-    flex-shrink: 0;
-    animation: rollIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  }
-  @keyframes rollIn {
-    from { transform: translateX(40px) rotate(180deg) scale(0.3); opacity: 0; }
-    to { transform: translateX(0) rotate(0deg) scale(1); opacity: 1; }
-  }
-
-  /* STATUS TOAST BANNER */
-  #toast-banner {
-    position: absolute;
-    top: 70px;
-    left: 50%;
-    transform: translateX(-50%) translateY(-25px);
-    background: linear-gradient(90deg, rgba(15,23,42,0.95), rgba(30,41,59,0.98), rgba(15,23,42,0.95));
-    border: 1px solid var(--neon-cyan);
-    padding: 8px 24px;
-    border-radius: 999px;
-    font-weight: 800;
-    font-size: 13px;
-    letter-spacing: 0.8px;
-    color: #fff;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.7), 0 0 15px rgba(0,242,254,0.3);
-    opacity: 0;
-    pointer-events: none;
-    transition: all 0.28s cubic-bezier(0.18, 0.89, 0.32, 1.28);
-    z-index: 40;
-    white-space: nowrap;
-  }
-  #toast-banner.show {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-
-  /* MODALS (MAIN MENU, SPIN MODAL, GAME OVER, ONLINE MATCHMAKING) */
-  .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(4, 7, 15, 0.86);
-    backdrop-filter: blur(8px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 100;
-    padding: 16px;
-  }
-  .modal-overlay.hidden {
-    display: none;
-  }
-  .modal-card {
-    background: linear-gradient(160deg, #11192c 0%, #090e1a 100%);
-    border: 1px solid rgba(0, 242, 254, 0.35);
-    border-radius: 20px;
-    padding: 24px;
-    max-width: 500px;
-    width: 100%;
-    text-align: center;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.85), 0 0 30px rgba(0,242,254,0.15);
-  }
-  .game-title {
-    font-size: 26px;
-    font-weight: 900;
-    background: linear-gradient(90deg, #00f2fe, #fbbf24, #00f2fe);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    letter-spacing: 1px;
-    margin-bottom: 4px;
-  }
-  .game-sub {
-    font-size: 12px;
-    color: #94a3b8;
-    margin-bottom: 18px;
-  }
-  .mode-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 18px;
-  }
-  .mode-btn {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.14);
-    border-radius: 12px;
-    padding: 12px 10px;
-    color: #fff;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-align: left;
-  }
-  .mode-btn:hover {
-    border-color: var(--neon-cyan);
-    background: rgba(0, 242, 254, 0.12);
-    transform: translateY(-2px);
-  }
-  .mode-btn h4 {
-    font-size: 14px;
-    color: var(--neon-cyan);
-    margin-bottom: 3px;
-  }
-  .mode-btn p {
-    font-size: 11px;
-    color: #94a3b8;
-    line-height: 1.3;
-  }
-  .selector-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: rgba(255,255,255,0.04);
-    padding: 8px 12px;
-    border-radius: 10px;
-    margin-bottom: 10px;
-    font-size: 12px;
-  }
-  .pill-group {
-    display: flex;
-    gap: 6px;
-  }
-  .pill {
-    padding: 4px 10px;
-    border-radius: 6px;
-    background: rgba(255,255,255,0.08);
-    border: 1px solid transparent;
-    color: #cbd5e1;
-    font-size: 11px;
-    font-weight: 700;
-    cursor: pointer;
-  }
-  .pill.active {
-    background: rgba(0, 242, 254, 0.2);
-    border-color: var(--neon-cyan);
-    color: #fff;
-  }
-
-  /* SPIN MODAL */
-  #spin-wheel-large {
-    width: 170px;
-    height: 170px;
-    border-radius: 50%;
-    margin: 16px auto;
-    background: radial-gradient(circle at 32% 32%, #ffffff 0%, #e2e8f0 55%, #94a3b8 90%, #475569 100%);
-    border: 4px solid var(--neon-cyan);
-    position: relative;
-    cursor: crosshair;
-    box-shadow: inset -10px -10px 24px rgba(0,0,0,0.45), 0 0 25px rgba(0,242,254,0.3);
-  }
-  #spin-wheel-large::before, #spin-wheel-large::after {
-    content: '';
-    position: absolute;
-    background: rgba(0,0,0,0.18);
-    pointer-events: none;
-  }
-  #spin-wheel-large::before { top: 50%; left: 10%; right: 10%; height: 1px; }
-  #spin-wheel-large::after { left: 50%; top: 10%; bottom: 10%; width: 1px; }
-  #spin-reticle {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    background: radial-gradient(circle, #ef4444 35%, #991b1b 100%);
-    border: 2px solid #fff;
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.6);
-    pointer-events: none;
-  }
-
-  @media (max-width: 720px) {
-    #top-hud { height: 52px; padding: 0 6px; }
-    .player-card { min-width: 140px; padding: 3px 6px; }
-    .avatar-wrap { width: 32px; height: 32px; font-size: 12px; }
-    .timer-svg { width: 38px; height: 38px; }
-    .mini-ball { width: 11px; height: 11px; }
-    .side-control { width: 42px; }
-    #bottom-bar { height: 30px; font-size: 10px; }
-  }
+:root{--bg:#06120f;--panel:#0b1b18;--panel2:#10251f;--cyan:#54e4db;--gold:#f6c65b;--green:#2fb879;--red:#ff6572;--muted:#9db6ae;--line:rgba(194,239,224,.15);--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;touch-action:pan-x pan-y;font-family:Inter,"Segoe UI",system-ui,-apple-system,sans-serif}
+html,body{width:100%;height:100%;overflow:hidden;background:radial-gradient(ellipse at 50% 25%,#19352b 0%,#081712 48%,#030907 100%);color:#f4fbf8}
+button,input{font:inherit}button{color:inherit;cursor:pointer}#app{width:100%;height:100%;height:100dvh;display:flex;flex-direction:column;position:relative;overflow:hidden;padding-top:var(--safe-top);padding-bottom:var(--safe-bottom)}
+#top-hud{height:64px;min-height:64px;width:100%;display:grid;grid-template-columns:minmax(175px,1fr) auto minmax(175px,1fr);align-items:center;gap:10px;padding:0 14px;background:linear-gradient(180deg,rgba(5,18,14,.98),rgba(7,20,16,.88));border-bottom:1px solid var(--line);box-shadow:0 8px 22px rgba(0,0,0,.35);z-index:5}
+.player-card{min-width:0;display:flex;align-items:center;gap:9px;padding:5px 9px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.035);height:52px;transition:.2s}.player-card.right{flex-direction:row-reverse;text-align:right}.player-card.active-turn{border-color:rgba(84,228,219,.8);background:rgba(25,116,97,.18);box-shadow:0 0 16px rgba(84,228,219,.13)}
+.avatar{width:38px;height:38px;flex:0 0 38px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 30% 25%,#315a4c,#10231c 70%);border:2px solid rgba(255,255,255,.25);color:var(--gold);font-size:12px;font-weight:900;position:relative}.turn-ring{position:absolute;inset:-5px;width:48px;height:48px;transform:rotate(-90deg);pointer-events:none}.turn-ring circle{fill:none;stroke:var(--green);stroke-width:3;stroke-dasharray:132;stroke-dashoffset:0;transition:stroke-dashoffset .2s linear}
+.p-info{min-width:0;flex:1}.p-name-row{display:flex;align-items:center;justify-content:space-between;gap:5px;font-size:12px;font-weight:850;letter-spacing:.3px;white-space:nowrap}.player-card.right .p-name-row{flex-direction:row-reverse}.p-name{overflow:hidden;text-overflow:ellipsis}.group-badge{padding:2px 6px;border-radius:5px;background:rgba(246,198,91,.13);color:var(--gold);font-size:9px;font-weight:900;white-space:nowrap}.ball-slots{display:flex;gap:3px;align-items:center;margin-top:5px;min-height:11px}.player-card.right .ball-slots{justify-content:flex-end}.mini-ball{width:11px;height:11px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.1)}
+.hud-center{display:flex;align-items:center;justify-content:center;gap:7px}.coin-badge{border:1px solid rgba(246,198,91,.65);background:rgba(246,198,91,.12);color:var(--gold);border-radius:20px;padding:7px 10px;font-size:12px;font-weight:900;white-space:nowrap}.hud-btn{border:1px solid var(--line);background:linear-gradient(180deg,rgba(255,255,255,.09),rgba(255,255,255,.035));border-radius:9px;padding:7px 10px;font-size:11px;font-weight:850;white-space:nowrap;transition:.15s}.hud-btn:active,.hud-btn:hover{border-color:var(--cyan);background:rgba(84,228,219,.12)}#spin-btn{width:39px;height:39px;flex:0 0 39px;border:2px solid var(--cyan);border-radius:50%;background:radial-gradient(circle at 32% 28%,#fff,#d9e8e5 52%,#879c98);position:relative;box-shadow:0 0 12px rgba(84,228,219,.2)}#spin-dot-mini{position:absolute;width:8px;height:8px;border-radius:50%;background:#e13a45;left:50%;top:50%;transform:translate(-50%,-50%);box-shadow:0 1px 3px #000}
+#arena{flex:1;min-height:0;width:100%;display:grid;grid-template-columns:48px minmax(0,1fr) 48px;align-items:stretch;gap:8px;padding:8px 9px 6px;overflow:hidden;position:relative}.side-control{align-self:center;height:min(80%,420px);min-height:190px;border:1px solid rgba(255,255,255,.14);border-radius:13px;background:linear-gradient(180deg,rgba(12,29,24,.97),rgba(5,15,12,.96));display:flex;flex-direction:column;align-items:center;padding:9px 5px;box-shadow:0 8px 22px rgba(0,0,0,.45);z-index:2}.side-control.disabled{opacity:.28;pointer-events:none}.side-label{font-size:9px;font-weight:950;letter-spacing:1px;color:var(--muted);margin-bottom:7px}.track{flex:1;width:27px;max-height:340px;min-height:115px;border-radius:16px;background:#030907;border:1px solid rgba(255,255,255,.2);position:relative;overflow:hidden;touch-action:none}.track-fill{position:absolute;left:0;top:0;width:100%;height:0;background:linear-gradient(180deg,#35bd82,#f4bd4c 60%,#ee5c52);opacity:.82}.cue-mark{position:absolute;left:50%;top:8px;transform:translateX(-50%);width:8px;height:84%;border-radius:5px;background:linear-gradient(180deg,#f9fafb 0 7%,#d5a44b 7% 45%,#7a4a22 46% 100%);box-shadow:0 2px 5px #000;pointer-events:none}.pct{font-size:10px;font-weight:900;color:var(--gold);margin-top:6px}#aim-wheel{flex:1;width:27px;min-height:115px;border-radius:9px;border:1px solid rgba(84,228,219,.35);background:repeating-linear-gradient(0deg,#0d2821 0 7px,#183d32 7px 14px);touch-action:none;position:relative;overflow:hidden}#aim-wheel:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.7),transparent 22%,transparent 78%,rgba(0,0,0,.7));pointer-events:none}
+#canvas-wrap{min-width:0;min-height:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}#pool-canvas{display:block;max-width:100%;max-height:100%;filter:drop-shadow(0 12px 22px rgba(0,0,0,.58));touch-action:none}
+#bottom-bar{height:38px;min-height:38px;padding:0 13px;display:grid;grid-template-columns:minmax(130px,1fr) minmax(140px,1.1fr) minmax(130px,1fr);gap:10px;align-items:center;background:rgba(4,13,10,.94);border-top:1px solid var(--line);font-size:10px;z-index:4}.mode-label{color:var(--cyan);font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rail{height:27px;display:flex;align-items:center;gap:5px;padding:3px 9px;border-radius:15px;background:#020806;border:1px solid var(--line);overflow-x:auto;scrollbar-width:none}.rail::-webkit-scrollbar{display:none}.rail-label{font-size:9px;color:#759288;font-weight:900;white-space:nowrap}.rail-ball{width:17px;height:17px;border-radius:50%;display:grid;place-items:center;font-size:8px;font-weight:950;color:#07100d;flex:0 0 auto;box-shadow:inset -2px -2px 3px rgba(0,0,0,.45),0 1px 2px #000}.hint{text-align:right;color:#9ab1a9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#toast{position:absolute;top:76px;left:50%;transform:translate(-50%,-18px);opacity:0;pointer-events:none;z-index:30;padding:9px 20px;border-radius:24px;border:1px solid var(--cyan);background:rgba(5,21,16,.96);box-shadow:0 6px 24px rgba(0,0,0,.5),0 0 14px rgba(84,228,219,.2);font-size:12px;font-weight:950;letter-spacing:.4px;white-space:nowrap;transition:.24s}#toast.show{opacity:1;transform:translate(-50%,0)}
+.modal-overlay{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(1,8,6,.84);backdrop-filter:blur(8px)}.modal-overlay.hidden{display:none}.modal-card{width:min(100%,510px);max-height:calc(100dvh - 28px);overflow:auto;border:1px solid rgba(84,228,219,.32);border-radius:19px;padding:22px;background:linear-gradient(155deg,#142a22,#07130f 75%);box-shadow:0 20px 60px rgba(0,0,0,.7),0 0 24px rgba(84,228,219,.1);text-align:center}.game-title{font-size:clamp(22px,4vw,29px);line-height:1.1;font-weight:1000;letter-spacing:.5px;background:linear-gradient(90deg,#75f0e3,#f6c65b,#75f0e3);background-clip:text;-webkit-background-clip:text;color:transparent}.game-sub{font-size:11px;color:#9bb4aa;margin:7px 0 17px}.selector-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 11px;margin-bottom:9px;border-radius:10px;background:rgba(255,255,255,.045);font-size:11px;text-align:left}.pill-group{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}.pill{padding:5px 8px;border:1px solid transparent;border-radius:6px;background:rgba(255,255,255,.08);font-size:10px;font-weight:900;color:#c9d9d3}.pill.active{border-color:var(--cyan);background:rgba(84,228,219,.17);color:#fff}.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:14px 0}.mode-btn{padding:12px 11px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.045);text-align:left;min-height:76px}.mode-btn:active,.mode-btn:hover{border-color:var(--cyan);background:rgba(84,228,219,.1)}.mode-btn h4{font-size:13px;color:var(--cyan);margin-bottom:4px}.mode-btn p{font-size:10px;line-height:1.35;color:#9eb6ad}.wide-btn{width:100%;justify-content:center;padding:10px}.secondary-row{display:flex;gap:8px;margin-top:8px}.secondary-row>*{flex:1}.muted-note{font-size:10px;line-height:1.5;color:#90a79e;margin:9px 0}.peer-code{padding:12px;margin:12px 0;border:1px solid rgba(246,198,91,.32);border-radius:12px;background:rgba(246,198,91,.06)}.peer-code strong{display:block;color:var(--gold);font-size:20px;letter-spacing:2px;margin-top:4px;word-break:break-all}.join-row{display:flex;gap:7px;margin-top:8px}.join-row input{min-width:0;flex:1;padding:9px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:#04100c;color:#fff;font-size:12px;outline:none;user-select:text;-webkit-user-select:text}.join-row input:focus{border-color:var(--cyan)}#spin-wheel-large{width:178px;height:178px;margin:15px auto;border-radius:50%;position:relative;touch-action:none;cursor:crosshair;border:4px solid var(--cyan);background:radial-gradient(circle at 33% 28%,#fff,#e2e8e4 55%,#899b94);box-shadow:inset -10px -10px 24px rgba(0,0,0,.35),0 0 22px rgba(84,228,219,.2)}#spin-wheel-large:before,#spin-wheel-large:after{content:"";position:absolute;background:rgba(0,0,0,.2)}#spin-wheel-large:before{height:1px;left:10%;right:10%;top:50%}#spin-wheel-large:after{width:1px;top:10%;bottom:10%;left:50%}#spin-reticle{position:absolute;width:22px;height:22px;border-radius:50%;left:50%;top:50%;transform:translate(-50%,-50%);background:radial-gradient(circle at 35% 30%,#ff9b9b,#d32332 65%,#75101d);border:2px solid white;box-shadow:0 2px 8px #000;pointer-events:none}
+#rotate-hint{display:none;position:fixed;inset:0;z-index:40;background:rgba(3,13,9,.94);align-items:center;justify-content:center;text-align:center;padding:28px;color:#eaf8f2;font-weight:800}#rotate-hint span{display:block;font-size:38px;margin-bottom:12px}@media(orientation:portrait) and (max-width:760px){#rotate-hint{display:flex}}
+@media(max-width:900px){#top-hud{grid-template-columns:minmax(110px,1fr) auto minmax(110px,1fr);gap:4px;padding:0 6px;height:58px;min-height:58px}.player-card{gap:6px;padding:4px 6px;height:47px}.avatar{width:31px;height:31px;flex-basis:31px;font-size:10px}.turn-ring{width:40px;height:40px;inset:-4px}.p-name-row{font-size:10px}.group-badge{font-size:8px;padding:2px 4px}.mini-ball{width:8px;height:8px}.hud-center{gap:4px}.hud-btn{padding:6px 7px;font-size:10px}.coin-badge{padding:6px 7px;font-size:10px}#spin-btn{width:33px;height:33px;flex-basis:33px}#arena{grid-template-columns:40px minmax(0,1fr) 40px;gap:5px;padding:5px 5px 3px}.side-control{width:40px;padding:7px 4px}.track,#aim-wheel{width:24px}#bottom-bar{grid-template-columns:minmax(90px,1fr) minmax(100px,1.1fr) minmax(80px,1fr);gap:5px;padding:0 6px;font-size:9px}.hint{font-size:9px}}
+@media(max-width:560px){#top-hud{grid-template-columns:minmax(82px,1fr) auto minmax(82px,1fr)}.p-info{max-width:85px}.p-name-row{font-size:9px}.group-badge{max-width:42px;overflow:hidden}.hud-btn{padding:6px 5px;font-size:9px}.coin-badge{font-size:9px;padding:5px 6px}.mode-grid{gap:7px}.mode-btn{padding:10px 8px}.modal-card{padding:17px}.selector-row{font-size:10px}.pill{padding:4px 6px;font-size:9px}#bottom-bar{grid-template-columns:1fr auto}.hint{display:none}.rail{max-width:46vw}}
+@media(orientation:landscape) and (max-height:460px){#top-hud{height:48px;min-height:48px}.player-card{height:40px}.avatar{width:28px;height:28px;flex-basis:28px}.turn-ring{width:36px;height:36px}.ball-slots{margin-top:2px}#bottom-bar{height:29px;min-height:29px}#arena{padding:3px 5px}.side-control{height:80%;min-height:120px}.modal-card{padding:15px;max-height:94dvh}.game-sub{margin:4px 0 10px}.mode-grid{margin:8px 0}.mode-btn{min-height:60px;padding:8px}.mode-btn p{font-size:9px}}
 </style>
 </head>
 <body>
-
 <div id="app">
-  <!-- TOP PLAY STORE HUD -->
-  <div id="top-hud">
-    <div id="p1-card" class="player-card active-turn">
-      <div class="avatar-wrap">
-        <svg class="timer-svg" viewBox="0 0 46 46">
-          <circle id="p1-timer" class="timer-circle" cx="23" cy="23" r="20"></circle>
-        </svg>
-        <span id="p1-avatar">P1</span>
-      </div>
-      <div class="p-info">
-        <div class="p-name-row">
-          <span id="p1-name">YOU</span>
-          <span id="p1-group" class="p-group-badge">OPEN</span>
-        </div>
-        <div id="p1-slots" class="ball-slots"></div>
-      </div>
-    </div>
-
-    <div class="hud-center">
-      <div class="coin-badge" title="Coin Balance">
-        🪙 <span id="coin-count">1000</span>
-      </div>
-      <div id="spin-btn" title="Cue Ball Spin (English)">
-        <div id="spin-dot-mini"></div>
-      </div>
-      <button id="practice-undo-btn" class="hud-btn" style="display:none;">↩ UNDO</button>
-      <button id="sound-btn" class="hud-btn">🔊</button>
-      <button id="fullscreen-btn" class="hud-btn" title="Fullscreen">⛶</button>
-      <button id="menu-btn" class="hud-btn">☰ MENU</button>
-    </div>
-
-    <div id="p2-card" class="player-card right">
-      <div class="avatar-wrap">
-        <svg class="timer-svg" viewBox="0 0 46 46">
-          <circle id="p2-timer" class="timer-circle" cx="23" cy="23" r="20"></circle>
-        </svg>
-        <span id="p2-avatar">BOT</span>
-      </div>
-      <div class="p-info p-right">
-        <div class="p-name-row">
-          <span id="p2-name">Rahul_Pro</span>
-          <span id="p2-group" class="p-group-badge">OPEN</span>
-        </div>
-        <div id="p2-slots" class="ball-slots"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- TOAST NOTIFICATION -->
-  <div id="toast-banner">BREAK SHOT!</div>
-
-  <!-- MIDDLE GAME ARENA -->
-  <div id="arena">
-    <!-- Left Power Slider -->
-    <div id="power-panel" class="side-control">
-      <div class="side-label">POWER</div>
-      <div id="power-track">
-        <div id="power-fill"></div>
-        <div id="power-cue-graphic"></div>
-      </div>
-      <div id="power-pct">0%</div>
-    </div>
-
-    <!-- Center Pool Table Canvas -->
-    <div id="canvas-wrap">
-      <canvas id="pool-canvas"></canvas>
-    </div>
-
-    <!-- Right Fine-Tune Aim Wheel -->
-    <div id="aim-panel" class="side-control">
-      <div class="side-label">FINE</div>
-      <div id="aim-wheel"></div>
-      <div class="side-label" style="margin-top:5px; margin-bottom:0;">AIM</div>
-    </div>
-  </div>
-
-  <!-- BOTTOM BALL RETURN RAIL -->
-  <div id="bottom-bar">
-    <div id="mode-indicator" style="color:var(--neon-cyan); font-weight:800;">MODE: 8-BALL VS BOT (STAKE: 250 COINS)</div>
-    <div id="pocketed-rail">
-      <span class="rail-label">POCKETED:</span>
-    </div>
-    <div id="hint-text" style="color:#94a3b8;">Drag table to aim • Pull left slider to shoot</div>
-  </div>
+  <header id="top-hud">
+    <div id="p1-card" class="player-card active-turn"><div class="avatar"><svg class="turn-ring" viewBox="0 0 46 46"><circle id="p1-timer" cx="23" cy="23" r="21"/></svg><span id="p1-avatar">YOU</span></div><div class="p-info"><div class="p-name-row"><span class="p-name" id="p1-name">YOU</span><span class="group-badge" id="p1-group">OPEN</span></div><div class="ball-slots" id="p1-slots"></div></div></div>
+    <div class="hud-center"><div class="coin-badge">🪙 <span id="coin-count">1000</span></div><button id="spin-btn" aria-label="Cue ball spin"><span id="spin-dot-mini"></span></button><button id="undo-btn" class="hud-btn" style="display:none">↶</button><button id="sound-btn" class="hud-btn">🔊</button><button id="fullscreen-btn" class="hud-btn">⛶</button><button id="menu-btn" class="hud-btn">☰</button></div>
+    <div id="p2-card" class="player-card right"><div class="avatar"><svg class="turn-ring" viewBox="0 0 46 46"><circle id="p2-timer" cx="23" cy="23" r="21"/></svg><span id="p2-avatar">BOT</span></div><div class="p-info"><div class="p-name-row"><span class="p-name" id="p2-name">Pool_Master</span><span class="group-badge" id="p2-group">OPEN</span></div><div class="ball-slots" id="p2-slots"></div></div></div>
+  </header>
+  <div id="toast">BREAK SHOT!</div>
+  <main id="arena">
+    <aside id="power-panel" class="side-control"><div class="side-label">POWER</div><div id="power-track" class="track"><div id="power-fill" class="track-fill"></div><div id="cue-mark" class="cue-mark"></div></div><div id="power-pct" class="pct">0%</div></aside>
+    <div id="canvas-wrap"><canvas id="pool-canvas" aria-label="Pool table game canvas"></canvas></div>
+    <aside id="aim-panel" class="side-control"><div class="side-label">FINE</div><div id="aim-wheel"></div><div class="side-label" style="margin:7px 0 0">AIM</div></aside>
+  </main>
+  <footer id="bottom-bar"><div id="mode-indicator" class="mode-label">8-BALL VS BOT</div><div id="pocketed-rail" class="rail"><span class="rail-label">POCKETED</span></div><div id="hint-text" class="hint">Drag table to aim · Pull POWER to shoot</div></footer>
 </div>
+<div id="rotate-hint"><div><span>↻</span>Rotate your phone to landscape<br><small style="font-size:12px;color:#9eb6ad">For the full pool-table experience</small></div></div>
 
-<!-- MAIN MENU MODAL -->
+<!-- MAIN MENU -->
 <div id="menu-modal" class="modal-overlay">
-  <div class="modal-card">
-    <div class="game-title">8 BALL POOL & SNOOKER PRO</div>
-    <div class="game-sub">GAMERKIE P2P & BOT EDITION • REAL PHYSICS</div>
-
-    <div class="selector-row">
-      <span>Match Stake (Coins):</span>
-      <div class="pill-group" id="stake-pills">
-        <button class="pill" data-stake="100">100 🪙</button>
-        <button class="pill active" data-stake="250">250 🪙</button>
-        <button class="pill" data-stake="500">500 🪙</button>
-        <button class="pill" data-stake="1000">1000 🪙</button>
-      </div>
-    </div>
-
-    <div class="selector-row">
-      <span>Cue Stick Style:</span>
-      <div class="pill-group" id="cue-pills">
-        <button class="pill active" data-cue="classic">Classic Wood</button>
-        <button class="pill" data-cue="neon">Cyber Neon</button>
-        <button class="pill" data-cue="gold">Royal Gold</button>
-      </div>
-    </div>
-
+  <section class="modal-card">
+    <div class="game-title">8 BALL POOL PRO</div><div class="game-sub">GAMERKIE EDITION · REALISTIC PHYSICS · 100 AI PERSONALITIES</div>
+    <div class="selector-row"><span>Match Stake</span><div id="stake-pills" class="pill-group"><button class="pill" data-stake="100">100 🪙</button><button class="pill active" data-stake="250">250 🪙</button><button class="pill" data-stake="500">500 🪙</button><button class="pill" data-stake="1000">1000 🪙</button></div></div>
+    <div class="selector-row"><span>Cue Style</span><div id="cue-pills" class="pill-group"><button class="pill active" data-cue="classic">Wood</button><button class="pill" data-cue="neon">Neon</button><button class="pill" data-cue="gold">Gold</button></div></div>
+    <div class="selector-row"><span>Table Felt</span><div id="felt-pills" class="pill-group"><button class="pill active" data-felt="emerald">Emerald</button><button class="pill" data-felt="blue">Blue</button><button class="pill" data-felt="crimson">Crimson</button></div></div>
     <div class="mode-grid">
-      <button class="mode-btn" onclick="Game.startMode('8ball_ai')">
-        <h4>🎱 8-Ball Vs Real Bot</h4>
-        <p>Play against smart real-name bot (Earn Coins).</p>
-      </button>
-      <button class="mode-btn" onclick="Game.startMode('online_p2p')">
-        <h4>🌐 Online P2P Match</h4>
-        <p>Connect with a real player via Room Code or Fallback to Bot.</p>
-      </button>
-      <button class="mode-btn" onclick="Game.startMode('snooker_ai')">
-        <h4>🔴 Quick Snooker Vs Bot</h4>
-        <p>10 Reds + 6 Colors on spots for points.</p>
-      </button>
-      <button class="mode-btn" onclick="Game.startMode('practice')">
-        <h4>🎯 Solo Practice</h4>
-        <p>Free table with Undo & practice trickshots.</p>
-      </button>
+      <button class="mode-btn" data-mode="8ball_ai"><h4>🎱 8-Ball vs AI</h4><p>Play a full match against one of 100 fictional named AI opponents. Win virtual coins.</p></button>
+      <button class="mode-btn" data-mode="online_p2p"><h4>🌐 Online P2P</h4><p>Host a private room or join a friend's code. Switches to AI if nobody connects.</p></button>
+      <button class="mode-btn" data-mode="snooker_ai"><h4>🔴 Quick Snooker</h4><p>Red and colour sequence with points against an AI opponent.</p></button>
+      <button class="mode-btn" data-mode="practice"><h4>🎯 Solo Practice</h4><p>Free table, cue spin and up to 10 undo steps. No entry fee.</p></button>
     </div>
-
-    <button class="hud-btn" style="width:100%; justify-content:center; padding:10px;" onclick="document.getElementById('menu-modal').classList.add('hidden')">
-      RESUME CURRENT TABLE
-    </button>
-  </div>
+    <div class="secondary-row"><button id="daily-bonus-btn" class="hud-btn">🎁 DAILY +250</button><button id="resume-btn" class="hud-btn">RESUME TABLE</button></div>
+    <p class="muted-note">Coins are local virtual game points only. They have no cash value. AI names are fictional player-style identities.</p>
+  </section>
 </div>
 
-<!-- ONLINE P2P ROOM MODAL -->
-<div id="online-modal" class="modal-overlay hidden">
-  <div class="modal-card" style="max-width:380px;">
-    <h3 style="color:var(--neon-cyan); margin-bottom:6px;">ONLINE P2P MATCHMAKING</h3>
-    <p id="online-status-text" style="font-size:12px; color:#cbd5e1; margin-bottom:14px;">Initializing Peer Connection...</p>
-    
-    <div style="background:rgba(255,255,255,0.04); padding:10px; border-radius:10px; margin-bottom:12px;">
-      <p style="font-size:11px; color:#94a3b8; margin-bottom:4px;">Your Room Code:</p>
-      <h2 id="my-peer-id" style="color:var(--neon-gold); letter-spacing:2px; font-size:20px;">Generating...</h2>
-    </div>
+<!-- ONLINE -->
+<div id="online-modal" class="modal-overlay hidden"><section class="modal-card" style="max-width:400px">
+  <h3 style="color:var(--cyan);font-size:18px">PRIVATE P2P ROOM</h3><p id="online-status-text" class="muted-note">Connecting to the PeerJS signalling service…</p>
+  <div class="peer-code"><span style="font-size:10px;color:#9bb4aa">YOUR ROOM CODE · SHARE WITH A FRIEND</span><strong id="my-peer-id">Generating…</strong><div style="margin-top:9px"><button id="copy-code-btn" class="hud-btn">COPY ROOM CODE</button></div></div>
+  <p style="font-size:11px;color:#9bb4aa;text-align:left">Join a friend's room:</p><div class="join-row"><input id="join-room-input" placeholder="Paste friend's room code" autocomplete="off" spellcheck="false"><button id="join-room-btn" class="hud-btn">JOIN</button></div>
+  <p class="muted-note">Waiting up to 30 seconds. If nobody joins, the game will start against AI. Peer-to-peer connections may be blocked by some networks.</p>
+  <button id="cancel-online-btn" class="hud-btn wide-btn">CANCEL · PLAY VS AI</button>
+</section></div>
 
-    <div style="margin-bottom:14px;">
-      <p style="font-size:11px; color:#94a3b8; margin-bottom:4px;">Join Friend's Room:</p>
-      <div style="display:flex; gap:6px;">
-        <input type="text" id="join-room-input" placeholder="Enter Room Code" style="flex:1; background:#070b14; border:1px solid rgba(255,255,255,0.2); border-radius:8px; padding:8px; color:#fff; font-size:12px;">
-        <button class="hud-btn" onclick="Game.connectToPeer()">JOIN</button>
-      </div>
-    </div>
+<!-- SPIN -->
+<div id="spin-modal" class="modal-overlay hidden"><section class="modal-card" style="max-width:330px"><h3 style="color:var(--cyan)">CUE BALL SPIN</h3><p class="muted-note">Top = follow · Bottom = backspin · Left / right = side spin</p><div id="spin-wheel-large"><div id="spin-reticle"></div></div><div class="secondary-row"><button id="spin-reset-btn" class="hud-btn">CENTER RESET</button><button id="spin-apply-btn" class="hud-btn">APPLY</button></div></section></div>
 
-    <p style="font-size:10px; color:#ef4444; margin-bottom:14px;">If no opponent joins in 10 seconds, you will auto-match with a Real-Name Bot!</p>
-    <button class="hud-btn" style="width:100%; justify-content:center;" onclick="Game.cancelOnline()">CANCEL / PLAY VS BOT</button>
-  </div>
-</div>
-
-<!-- SPIN MODAL -->
-<div id="spin-modal" class="modal-overlay hidden">
-  <div class="modal-card" style="max-width: 320px;">
-    <h3 style="color:var(--neon-cyan); margin-bottom:4px;">CUE BALL SPIN (ENGLISH)</h3>
-    <p style="font-size:11px; color:#94a3b8;">Top = Follow • Bottom = Backspin • Left/Right = Side</p>
-    <div id="spin-wheel-large">
-      <div id="spin-reticle"></div>
-    </div>
-    <div style="display:flex; gap:10px; justify-content:center;">
-      <button class="hud-btn" onclick="Game.resetSpin()">CENTER RESET</button>
-      <button class="hud-btn" style="border-color:var(--neon-cyan);" onclick="document.getElementById('spin-modal').classList.add('hidden')">APPLY</button>
-    </div>
-  </div>
-</div>
-
-<!-- GAME OVER MODAL -->
-<div id="gameover-modal" class="modal-overlay hidden">
-  <div class="modal-card" style="max-width: 380px;">
-    <div id="winner-title" class="game-title" style="font-size:28px;">YOU WIN!</div>
-    <p id="winner-reason" style="color:#cbd5e1; font-size:13px; margin: 10px 0 20px;">Won the match and earned 250 coins!</p>
-    <div style="display:flex; gap:10px; justify-content:center;">
-      <button class="hud-btn" style="padding:10px 18px; border-color:var(--neon-cyan);" onclick="Game.rematch()">🔄 REMATCH</button>
-      <button class="hud-btn" style="padding:10px 18px;" onclick="Game.openMenu()">☰ MAIN MENU</button>
-    </div>
-  </div>
-</div>
+<!-- MATCH RESULT -->
+<div id="gameover-modal" class="modal-overlay hidden"><section class="modal-card" style="max-width:390px"><div id="winner-title" class="game-title">YOU WIN!</div><p id="winner-reason" class="muted-note" style="font-size:13px;margin:15px 0 20px"></p><div class="secondary-row"><button id="rematch-btn" class="hud-btn">🔄 REMATCH</button><button id="result-menu-btn" class="hud-btn">☰ MAIN MENU</button></div></section></div>
 
 <script>
-/**
- * ============================================================================
- * 1. SYNTHESIZED WEB AUDIO API SOUND ENGINE
- * ============================================================================
- */
-class SoundEngine {
-  constructor() {
-    this.ctx = null;
-    this.muted = false;
-  }
-  init() {
-    if (!this.ctx) {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (AudioCtx) this.ctx = new AudioCtx();
-    }
-    if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume();
-    }
-  }
-  playCueHit(powerRatio) {
-    if (this.muted) return;
-    this.init();
-    if (!this.ctx) return;
-    const now = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.type = 'triangle';
-    const baseFreq = 140 + powerRatio * 120;
-    osc.frequency.setValueAtTime(baseFreq, now);
-    osc.frequency.exponentialRampToValueAtTime(38, now + 0.08);
-    gain.gain.setValueAtTime(Math.min(1, 0.25 + powerRatio * 0.75), now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start(now);
-    osc.stop(now + 0.09);
-  }
-  playBallClack(impactSpeed) {
-    if (this.muted || impactSpeed < 0.15) return;
-    this.init();
-    if (!this.ctx) return;
-    const now = this.ctx.currentTime;
-    const vol = Math.min(0.85, impactSpeed / 18);
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.type = 'sine';
-    const freq = 1350 + Math.min(800, impactSpeed * 40);
-    osc.frequency.setValueAtTime(freq, now);
-    osc.frequency.exponentialRampToValueAtTime(420, now + 0.035);
-    gain.gain.setValueAtTime(vol, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start(now);
-    osc.stop(now + 0.04);
-  }
-  playCushionHit(speed) {
-    if (this.muted || speed < 0.3) return;
-    this.init();
-    if (!this.ctx) return;
-    const now = this.ctx.currentTime;
-    const vol = Math.min(0.5, speed / 22);
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(115, now);
-    osc.frequency.exponentialRampToValueAtTime(42, now + 0.065);
-    gain.gain.setValueAtTime(vol, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start(now);
-    osc.stop(now + 0.07);
-  }
-  playPocketDrop(isFoul = false) {
-    if (this.muted) return;
-    this.init();
-    if (!this.ctx) return;
-    const now = this.ctx.currentTime;
-    const notes = isFoul ? [220, 165] : [330, 440, 659];
-    notes.forEach((f, idx) => {
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.type = isFoul ? 'sawtooth' : 'triangle';
-      osc.frequency.setValueAtTime(f, now + idx * 0.07);
-      gain.gain.setValueAtTime(0.22, now + idx * 0.07);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.07 + 0.16);
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start(now + idx * 0.07);
-      osc.stop(now + idx * 0.07 + 0.17);
-    });
-  }
-  playTick() {
-    if (this.muted) return;
-    this.init();
-    if (!this.ctx) return;
-    const now = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(880, now);
-    gain.gain.setValueAtTime(0.12, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start(now);
-    osc.stop(now + 0.035);
-  }
+'use strict';
+
+// PeerJS is used only for private room signalling/data channels. There is no global matchmaking server.
+const LOGICAL_W=960, LOGICAL_H=525, RAIL=50, PLAY_X=RAIL, PLAY_Y=RAIL;
+const PLAY_W=LOGICAL_W-RAIL*2, PLAY_H=LOGICAL_H-RAIL*2;
+const BALL_R=18, POCKET_R=30, MAX_POWER=30, TURN_SECONDS=30;
+const BALL_COLORS={
+  0:{hex:'#f8fafc',stripe:false,name:'Cue'},1:{hex:'#f4d32f',stripe:false},2:{hex:'#2563eb',stripe:false},3:{hex:'#d92d32',stripe:false},4:{hex:'#8b43b6',stripe:false},5:{hex:'#e97922',stripe:false},6:{hex:'#238b52',stripe:false},7:{hex:'#74243b',stripe:false},8:{hex:'#10151b',stripe:false},
+  9:{hex:'#f4d32f',stripe:true},10:{hex:'#2563eb',stripe:true},11:{hex:'#d92d32',stripe:true},12:{hex:'#8b43b6',stripe:true},13:{hex:'#e97922',stripe:true},14:{hex:'#238b52',stripe:true},15:{hex:'#74243b',stripe:true}
+};
+const FELTS={emerald:{center:'#148653',edge:'#075133',line:'rgba(231,255,244,.2)'},blue:{center:'#2676a5',edge:'#0c3d60',line:'rgba(231,247,255,.2)'},crimson:{center:'#a62d36',edge:'#56131d',line:'rgba(255,235,235,.2)'}};
+const BOT_FIRST=['Aarav','Vivaan','Aditya','Vihaan','Arjun','Reyansh','Ishaan','Kabir','Anaya','Diya','Aadhya','Saanvi','Meera','Ira','Myra','Riya','Rohan','Rahul','Karan','Amit'];
+const BOT_LAST=['Sharma','Verma','Patel','Singh','Khan','Mehta','Das','Reddy','Malhotra','Joshi','Ace','CueKing','PoolPro','BreakMaster','SnookerX','EightBall','ShotMaker','TheStriker','CushionPro','PocketStar'];
+const BOT_NAMES=BOT_FIRST.flatMap(first=>BOT_LAST.map(last=>`${first}_${last}`)).slice(0,100);
+
+class SoundEngine{
+  constructor(){this.ctx=null;this.muted=false;this.lastClack=0;}
+  init(){try{if(!this.ctx){const A=window.AudioContext||window.webkitAudioContext;if(A)this.ctx=new A();}if(this.ctx&&this.ctx.state==='suspended')this.ctx.resume();}catch(e){}}
+  tone(freq,endFreq,duration,volume,type='sine',delay=0){if(this.muted)return;this.init();if(!this.ctx)return;const t=this.ctx.currentTime+delay,o=this.ctx.createOscillator(),g=this.ctx.createGain();o.type=type;o.frequency.setValueAtTime(freq,t);if(endFreq>0)o.frequency.exponentialRampToValueAtTime(endFreq,t+duration);g.gain.setValueAtTime(Math.max(.0001,volume),t);g.gain.exponentialRampToValueAtTime(.0001,t+duration);o.connect(g);g.connect(this.ctx.destination);o.start(t);o.stop(t+duration+.01);}
+  hit(power){this.tone(155+power*145,42,.09,.12+power*.2,'triangle');}
+  clack(speed){const now=performance.now();if(now-this.lastClack<24||speed<.3)return;this.lastClack=now;this.tone(1500+Math.min(800,speed*35),450,.035,Math.min(.22,speed/80),'sine');}
+  rail(speed){if(speed>.5)this.tone(125,46,.055,Math.min(.13,speed/100),'triangle');}
+  pocket(foul=false){(foul?[215,155]:[330,440,660]).forEach((f,i)=>this.tone(f,0,.14,.08,foul?'sawtooth':'triangle',i*.055));}
+  tick(){this.tone(880,0,.025,.06,'sine');}
 }
+const SFX=new SoundEngine();
 
-const SFX = new SoundEngine();
-
-const REAL_BOT_NAMES = [
-  "Rahul_Ace", "Amit_Pool99", "Sneha_Cue", "Vikram_8Ball", 
-  "Pooja_Master", "Karan_Pro", "Neha_Shot", "Rohit_King", 
-  "Anjali_Snooker", "Sameer_Pro"
-];
-
-const LOGICAL_W = 1040;
-const LOGICAL_H = 560;
-const RAIL_SIZE = 52;
-const PLAY_X = RAIL_SIZE;
-const PLAY_Y = RAIL_SIZE;
-const PLAY_W = LOGICAL_W - RAIL_SIZE * 2;
-const PLAY_H = LOGICAL_H - RAIL_SIZE * 2;
-const BALL_R = 13.5;
-const POCKET_R = 26;
-
-const BALL_COLORS = {
-  0:  { hex: '#ffffff', stripe: false, name: 'Cue' },
-  1:  { hex: '#facc15', stripe: false, name: 'Yellow' },
-  2:  { hex: '#2563eb', stripe: false, name: 'Blue' },
-  3:  { hex: '#dc2626', stripe: false, name: 'Red' },
-  4:  { hex: '#7c3aed', stripe: false, name: 'Purple' },
-  5:  { hex: '#ea580c', stripe: false, name: 'Orange' },
-  6:  { hex: '#16a34a', stripe: false, name: 'Green' },
-  7:  { hex: '#881337', stripe: false, name: 'Maroon' },
-  8:  { hex: '#0f172a', stripe: false, name: 'Black 8' },
-  9:  { hex: '#facc15', stripe: true,  name: 'Yellow Stripe' },
-  10: { hex: '#2563eb', stripe: true,  name: 'Blue Stripe' },
-  11: { hex: '#dc2626', stripe: true,  name: 'Red Stripe' },
-  12: { hex: '#7c3aed', stripe: true,  name: 'Purple Stripe' },
-  13: { hex: '#ea580c', stripe: true,  name: 'Orange Stripe' },
-  14: { hex: '#16a34a', stripe: true,  name: 'Green Stripe' },
-  15: { hex: '#881337', stripe: true,  name: 'Maroon Stripe' }
-};
-
-const FELT_THEMES = {
-  emerald: { center: '#0d8a52', edge: '#064e2e', line: 'rgba(255,255,255,0.22)' },
-  blue:    { center: '#1d6fa5', edge: '#0c3b5e', line: 'rgba(255,255,255,0.22)' },
-  crimson: { center: '#991b1b', edge: '#500b0b', line: 'rgba(255,255,255,0.22)' }
-};
-
-class BilliardsGame {
-  constructor() {
-    this.canvas = document.getElementById('pool-canvas');
-    this.ctx = this.canvas.getContext('2d');
-
-    this.mode = '8ball_ai'; // '8ball_ai', 'snooker_ai', 'online_p2p', 'practice'
-    this.cueStyle = 'classic';
-    this.feltStyle = 'emerald';
-    this.stakeCoins = 250;
-    this.coins = parseInt(localStorage.getItem('gk_pool_coins') || '1000');
-    
-    this.botName = REAL_BOT_NAMES[Math.floor(Math.random() * REAL_BOT_NAMES.length)];
-
-    // P2P PeerJS
-    this.peer = null;
-    this.conn = null;
-    this.isHost = false;
-    this.p2pTimer = null;
-
-    this.balls = [];
-    this.pockets = [];
-    this.jawSegments = [];
-    this.pocketAnims = [];
-    this.historySnapshots = [];
-
-    this.state = 'AIMING';
-    this.turn = 1; // 1 = You, 2 = Opponent / Bot
-    this.p1Group = null;
-    this.p2Group = null;
-    this.p1Score = 0;
-    this.p2Score = 0;
-    this.snookerTarget = 'RED';
-    this.isBreakShot = true;
-
-    this.firstHitBall = null;
-    this.pottedThisTurn = [];
-    this.cueScratched = false;
-
-    this.aimAngle = 0;
-    this.pullPower = 0;
-    this.spinX = 0;
-    this.spinY = 0;
-
-    this.turnTimeMax = 30;
-    this.turnTimeLeft = 30;
-    this.lastTickSec = 30;
-
-    this.setupTableGeometry();
-    this.bindEvents();
-    this.resize();
-    this.updateCoinUI();
-    this.startMode('8ball_ai');
-
-    this.lastFrameTime = performance.now();
-    requestAnimationFrame((t) => this.loop(t));
+class PoolGame{
+  constructor(){
+    this.canvas=document.getElementById('pool-canvas');this.ctx=this.canvas.getContext('2d',{alpha:true});
+    this.mode='8ball_ai';this.cueStyle='classic';this.feltStyle='emerald';this.stake=250;this.coins=this.readCoins();
+    this.balls=[];this.pockets=[];this.cushions=[];this.knuckles=[];this.pocketAnims=[];this.snapshots=[];
+    this.state='AIMING';this.turn=1;this.p1Group=null;this.p2Group=null;this.p1Score=0;this.p2Score=0;this.snookerTarget='RED';this.isBreak=true;
+    this.firstHitBall=null;this.firstHitWasLegal=false;this.pottedThisTurn=[];this.cueScratched=false;this.aimAngle=0;this.power=0;this.spinX=0;this.spinY=0;
+    this.botName='Aarav_Ace';this.botLevel=3;this.turnTime=TURN_SECONDS;this.lastTick=TURN_SECONDS;
+    this.peer=null;this.conn=null;this.isHost=false;this.onlineTimer=null;this.onlineStarted=false;this.matchPaid=false;this.matchEnded=false;this.toastTimer=null;
+    this.lastFrame=performance.now();this.accumulator=0;this.aimDrag=false;this.cueDrag=false;this.powerDrag=false;this.wheelDrag=false;this.spinDrag=false;
+    this.makeTableGeometry();this.bindEvents();this.resize();this.updateCoins();this.initializeRound('8ball_ai',true);this.showMenu();
+    requestAnimationFrame(t=>this.loop(t));
   }
-
-  updateCoinUI() {
-    document.getElementById('coin-count').textContent = this.coins;
-    localStorage.setItem('gk_pool_coins', this.coins);
-  }
-
-  setupTableGeometry() {
-    const L = PLAY_X;
-    const R = PLAY_X + PLAY_W;
-    const T = PLAY_Y;
-    const B = PLAY_Y + PLAY_H;
-    const M = PLAY_X + PLAY_W / 2;
-
-    this.pockets = [
-      { x: L - 4, y: T - 4, r: POCKET_R },
-      { x: M,     y: T - 8, r: POCKET_R - 1 },
-      { x: R + 4, y: T - 4, r: POCKET_R },
-      { x: L - 4, y: B + 4, r: POCKET_R },
-      { x: M,     y: B + 8, r: POCKET_R - 1 },
-      { x: R + 4, y: B + 4, r: POCKET_R }
+  readCoins(){const raw=localStorage.getItem('gk_pool_coins');if(raw===null)return 1000;const n=Number(raw);return Number.isFinite(n)&&n>=0?Math.floor(n):1000;}
+  saveCoins(){localStorage.setItem('gk_pool_coins',String(this.coins));}
+  updateCoins(){document.getElementById('coin-count').textContent=this.coins.toLocaleString('en-IN');this.saveCoins();}
+  makeTableGeometry(){
+    const L=PLAY_X,R=PLAY_X+PLAY_W,T=PLAY_Y,B=PLAY_Y+PLAY_H,M=PLAY_X+PLAY_W/2,corner=46,side=43;
+    this.pockets=[{x:L+1,y:T+1,r:POCKET_R},{x:M,y:T-2,r:POCKET_R-2},{x:R-1,y:T+1,r:POCKET_R},{x:L+1,y:B-1,r:POCKET_R},{x:M,y:B+2,r:POCKET_R-2},{x:R-1,y:B-1,r:POCKET_R}];
+    this.cushions=[
+      {x1:L+corner,y1:T,x2:M-side,y2:T,nx:0,ny:1},{x1:M+side,y1:T,x2:R-corner,y2:T,nx:0,ny:1},
+      {x1:L+corner,y1:B,x2:M-side,y2:B,nx:0,ny:-1},{x1:M+side,y1:B,x2:R-corner,y2:B,nx:0,ny:-1},
+      {x1:L,y1:T+corner,x2:L,y2:B-corner,nx:1,ny:0},{x1:R,y1:T+corner,x2:R,y2:B-corner,nx:-1,ny:0}
     ];
-
-    const cGap = 32;
-    const sGap = 28;
-    this.cushions = [
-      { x1: L + cGap, y1: T, x2: M - sGap, y2: T, nx: 0, ny: 1 },
-      { x1: M + sGap, y1: T, x2: R - cGap, y2: T, nx: 0, ny: 1 },
-      { x1: L + cGap, y1: B, x2: M - sGap, y2: B, nx: 0, ny: -1 },
-      { x1: M + sGap, y1: B, x2: R - cGap, y2: B, nx: 0, ny: -1 },
-      { x1: L, y1: T + cGap, x2: L, y2: B - cGap, nx: 1, ny: 0 },
-      { x1: R, y1: T + cGap, x2: R, y2: B - cGap, nx: -1, ny: 0 }
-    ];
-
-    this.knuckles = [];
-    this.cushions.forEach(c => {
-      this.knuckles.push({ x: c.x1, y: c.y1 });
-      this.knuckles.push({ x: c.x2, y: c.y2 });
-    });
+    this.knuckles=[];this.cushions.forEach(c=>{this.knuckles.push({x:c.x1,y:c.y1});this.knuckles.push({x:c.x2,y:c.y2});});
   }
-
-  startMode(modeName) {
-    if (this.peer) {
-      try { this.peer.destroy(); } catch(e){}
-      this.peer = null;
-      this.conn = null;
-    }
-    clearTimeout(this.p2pTimer);
-
-    if (modeName === 'online_p2p') {
-      document.getElementById('menu-modal').classList.add('hidden');
-      document.getElementById('online-modal').classList.remove('hidden');
-      this.initPeerConnection();
-      return;
-    }
-
-    this.mode = modeName;
-    document.getElementById('menu-modal').classList.add('hidden');
-    document.getElementById('online-modal').classList.add('hidden');
-    document.getElementById('gameover-modal').classList.add('hidden');
-    document.getElementById('pocketed-rail').innerHTML = '<span class="rail-label">POCKETED:</span>';
-
-    this.turn = 1;
-    this.p1Group = null;
-    this.p2Group = null;
-    this.p1Score = 0;
-    this.p2Score = 0;
-    this.snookerTarget = 'RED';
-    this.isBreakShot = true;
-    this.aimAngle = 0;
-    this.pullPower = 0;
-    this.resetSpin();
-    this.historySnapshots = [];
-
-    const undoBtn = document.getElementById('practice-undo-btn');
-    undoBtn.style.display = (modeName === 'practice') ? 'flex' : 'none';
-
-    if (modeName === '8ball_ai') {
-      this.botName = REAL_BOT_NAMES[Math.floor(Math.random() * REAL_BOT_NAMES.length)];
-      document.getElementById('mode-indicator').textContent = `MODE: 8-BALL VS ${this.botName.toUpperCase()} (STAKE: ${this.stakeCoins} 🪙)`;
-    } else if (modeName === 'snooker_ai') {
-      this.botName = REAL_BOT_NAMES[Math.floor(Math.random() * REAL_BOT_NAMES.length)];
-      document.getElementById('mode-indicator').textContent = `MODE: QUICK SNOOKER VS ${this.botName.toUpperCase()}`;
-    } else if (modeName === 'online_p2p') {
-      document.getElementById('mode-indicator').textContent = `MODE: ONLINE P2P MATCH`;
-    } else {
-      document.getElementById('mode-indicator').textContent = `MODE: SOLO PRACTICE TABLE`;
-    }
-
-    document.getElementById('p1-name').textContent = 'YOU';
-    document.getElementById('p2-name').textContent = (modeName === 'practice') ? 'SOLO' : this.botName;
-    document.getElementById('p2-avatar').textContent = (modeName === 'practice') ? 'SOLO' : this.botName.substring(0, 2).toUpperCase();
-
-    if (modeName === 'snooker_ai') {
-      this.rackSnooker();
-    } else {
-      this.rack8Ball();
-    }
-
-    this.state = 'AIMING';
-    this.turnTimeLeft = this.turnTimeMax;
-    this.updateHUD();
-    this.showToast('BREAK SHOT! YOUR TURN');
+  pickBot(){const idx=Math.floor(Math.random()*BOT_NAMES.length);this.botName=BOT_NAMES[idx];this.botLevel=1+(idx%5);}
+  showMenu(){document.getElementById('menu-modal').classList.remove('hidden');}
+  hideMenus(){['menu-modal','online-modal','spin-modal','gameover-modal'].forEach(id=>document.getElementById(id).classList.add('hidden'));}
+  toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(this.toastTimer);this.toastTimer=setTimeout(()=>el.classList.remove('show'),2300);}
+  updateModeLabel(){let label='';if(this.mode==='8ball_ai')label=`8-BALL VS ${this.botName} · ${this.stake} COINS`;else if(this.mode==='snooker_ai')label=`SNOOKER VS ${this.botName}`;else if(this.mode==='online_p2p')label='PRIVATE ONLINE P2P MATCH';else label='SOLO PRACTICE · FREE';document.getElementById('mode-indicator').textContent=label;}
+  startMode(mode){
+    if(mode==='online_p2p'){this.beginOnline();return;}
+    this.closePeer();this.hideMenus();this.mode=mode;this.matchEnded=false;this.matchPaid=false;this.pickBot();
+    if(mode!=='practice'&&this.coins<this.stake){this.showMenu();this.toast('NOT ENOUGH COINS · CHOOSE A LOWER STAKE');return;}
+    if(mode!=='practice'){this.coins-=this.stake;this.matchPaid=true;this.updateCoins();}
+    this.initializeRound(mode,false);this.updateModeLabel();this.toast(mode==='practice'?'PRACTICE TABLE READY':'BREAK SHOT · YOUR TURN');
   }
-
-  initPeerConnection() {
-    const randomId = 'gk_' + Math.floor(1000 + Math.random() * 9000);
-    document.getElementById('my-peer-id').textContent = randomId;
-    document.getElementById('online-status-text').textContent = 'Looking for online players or waiting in room...';
-
-    this.peer = new Peer(randomId);
-    this.isHost = true;
-
-    this.peer.on('open', (id) => {
-      // Start 10 second timer for bot fallback if no online player joins
-      this.p2pTimer = setTimeout(() => {
-        if (!this.conn || !this.conn.open) {
-          this.showToast(`No online player found! Playing vs ${this.botName}`);
-          document.getElementById('online-modal').classList.add('hidden');
-          this.startMode('8ball_ai');
+  initializeRound(mode,initial=false){
+    this.mode=mode;this.turn=1;this.p1Group=null;this.p2Group=null;this.p1Score=0;this.p2Score=0;this.snookerTarget='RED';this.isBreak=true;
+    this.aimAngle=0;this.power=0;this.spinX=0;this.spinY=0;this.firstHitBall=null;this.firstHitWasLegal=false;this.pottedThisTurn=[];this.cueScratched=false;this.pocketAnims=[];this.snapshots=[];this.turnTime=TURN_SECONDS;this.lastTick=TURN_SECONDS;this.matchEnded=false;
+    document.getElementById('pocketed-rail').innerHTML='<span class="rail-label">POCKETED</span>';
+    document.getElementById('undo-btn').style.display=mode==='practice'?'inline-flex':'none';
+    if(mode==='snooker_ai')this.rackSnooker();else this.rack8Ball();
+    this.state='AIMING';this.updateHUD();this.updatePower(0);this.resetSpin();this.updateModeLabel();
+    if(!initial){document.getElementById('menu-modal').classList.add('hidden');document.getElementById('gameover-modal').classList.add('hidden');}
+  }
+  rack8Ball(){
+    this.balls=[];const cueX=PLAY_X+PLAY_W*.23,cy=PLAY_Y+PLAY_H/2,footX=PLAY_X+PLAY_W*.72;
+    this.balls.push(this.createBall(0,cueX,cy));
+    const rows=[[1],[9,2],[10,8,3],[4,14,6,11],[12,5,13,15,7]],dx=BALL_R*1.76,dy=BALL_R*2.03;
+    rows.forEach((row,r)=>{const x=footX+r*dx,y0=cy-(row.length-1)*dy/2;row.forEach((id,c)=>this.balls.push(this.createBall(id,x,y0+c*dy)));});
+  }
+  rackSnooker(){
+    this.balls=[];const baulk=PLAY_X+PLAY_W*.21,cy=PLAY_Y+PLAY_H/2,d=PLAY_H*.18;
+    this.balls.push(this.createBall(0,baulk-35,cy+18));
+    const defs=[{id:20,val:2,hex:'#efca31',x:baulk,y:cy+d},{id:21,val:3,hex:'#29934f',x:baulk,y:cy-d},{id:22,val:4,hex:'#895332',x:baulk,y:cy},{id:23,val:5,hex:'#2869d7',x:PLAY_X+PLAY_W*.5,y:cy},{id:24,val:6,hex:'#e978a9',x:PLAY_X+PLAY_W*.68,y:cy},{id:25,val:7,hex:'#111820',x:PLAY_X+PLAY_W*.9,y:cy}];
+    defs.forEach(o=>{const b=this.createBall(o.id,o.x,o.y);Object.assign(b,{snookerVal:o.val,customHex:o.hex,isRed:false,spotX:o.x,spotY:o.y});this.balls.push(b);});
+    const sx=PLAY_X+PLAY_W*.725,dx=BALL_R*1.76,dy=BALL_R*2.03;let id=101;
+    for(let row=0;row<4;row++){const count=row+1,x=sx+row*dx,y0=cy-(count-1)*dy/2;for(let col=0;col<count;col++){const b=this.createBall(id++,x,y0+col*dy);Object.assign(b,{snookerVal:1,customHex:'#ce2734',isRed:true});this.balls.push(b);}}
+  }
+  createBall(id,x,y){return{id,x,y,vx:0,vy:0,spinX:0,spinY:0,potted:false,snookerVal:0,isRed:false,customHex:null,spotX:null,spotY:null};}
+  cueBall(){return this.balls.find(b=>b.id===0);}
+  groupOf(id){if(id>=1&&id<=7)return'SOLIDS';if(id>=9&&id<=15)return'STRIPES';return null;}
+  groupForTurn(turn=this.turn){return turn===1?this.p1Group:this.p2Group;}
+  getLowestColorVal(){const a=this.balls.filter(b=>!b.potted&&!b.isRed&&b.id!==0);return a.length?Math.min(...a.map(b=>b.snookerVal)):0;}
+  isLegalTarget(ball){
+    if(!ball||ball.id===0||ball.potted)return false;
+    if(this.mode==='practice')return true;
+    if(this.mode==='snooker_ai'){
+      const reds=this.balls.some(b=>!b.potted&&b.isRed);
+      if(this.snookerTarget==='RED')return reds?ball.isRed:ball.snookerVal===this.getLowestColorVal();
+      if(this.snookerTarget==='COLOR_ANY')return !ball.isRed;
+      return !ball.isRed&&ball.snookerVal===Number(this.snookerTarget);
+    }
+    const group=this.groupForTurn();if(!group)return ball.id!==8;
+    const left=this.balls.filter(b=>!b.potted&&this.groupOf(b.id)===group).length;
+    return left===0?ball.id===8:this.groupOf(ball.id)===group;
+  }
+  isMyTurn(){if(this.mode==='online_p2p')return this.isHost?this.turn===1:this.turn===2;return this.turn===1;}
+  updateHUD(){
+    const localP1=this.mode!=='online_p2p'||this.isHost;
+    const p1=document.getElementById('p1-card'),p2=document.getElementById('p2-card');
+    p1.classList.toggle('active-turn',this.turn===(localP1?1:2));p2.classList.toggle('active-turn',this.turn===(localP1?2:1));
+    document.getElementById('p1-name').textContent=this.mode==='online_p2p'?(localP1?'YOU':'HOST'):'YOU';
+    document.getElementById('p2-name').textContent=this.mode==='practice'?'PRACTICE':this.mode==='online_p2p'?(localP1?'FRIEND':'YOU'):this.botName;
+    document.getElementById('p1-avatar').textContent=this.mode==='online_p2p'&&!localP1?'P1':'YOU';
+    document.getElementById('p2-avatar').textContent=this.mode==='online_p2p'?(localP1?'P2':'YOU'):(this.mode==='practice'?'SOLO':this.botName.slice(0,2).toUpperCase());
+    const localGroup1=localP1?this.p1Group:this.p2Group,localGroup2=localP1?this.p2Group:this.p1Group;
+    const localScore1=localP1?this.p1Score:this.p2Score,localScore2=localP1?this.p2Score:this.p1Score;
+    if(this.mode==='snooker_ai'){document.getElementById('p1-group').textContent=`${localScore1} PTS`;document.getElementById('p2-group').textContent=`${localScore2} PTS`;document.getElementById('p1-slots').innerHTML='';document.getElementById('p2-slots').innerHTML='';}
+    else{document.getElementById('p1-group').textContent=localGroup1||'OPEN';document.getElementById('p2-group').textContent=localGroup2||'OPEN';this.renderSlots('p1-slots',localGroup1);this.renderSlots('p2-slots',localGroup2);}
+    const enabled=this.isMyTurn()&&(this.state==='AIMING'||this.state==='BALL_IN_HAND');
+    document.getElementById('power-panel').classList.toggle('disabled',!enabled);document.getElementById('aim-panel').classList.toggle('disabled',!enabled);
+    this.updateTimerUI();
+  }
+  renderSlots(id,group){const el=document.getElementById(id);el.innerHTML='';if(!group){for(let i=0;i<7;i++){const d=document.createElement('i');d.className='mini-ball';el.appendChild(d);}return;}const start=group==='SOLIDS'?1:9;for(let n=start;n<start+7;n++){const b=this.balls.find(x=>x.id===n),d=document.createElement('i');d.className='mini-ball';if(b&&!b.potted){const c=BALL_COLORS[n];d.style.background=c.stripe?`linear-gradient(180deg,#fff 0 22%,${c.hex} 22% 78%,#fff 78%)`:c.hex;}else d.style.opacity='.2';el.appendChild(d);}}
+  updateTimerUI(){const ratio=Math.max(0,this.turnTime/TURN_SECONDS),off=132*(1-ratio);const localActive=this.mode==='online_p2p'?(this.isHost?this.turn===1:this.turn===2):this.turn===1;const active=document.getElementById(localActive?'p1-timer':'p2-timer'),idle=document.getElementById(localActive?'p2-timer':'p1-timer');active.style.strokeDashoffset=String(off);active.style.stroke=this.turnTime<8?'#ff6572':'#2fb879';idle.style.strokeDashoffset='132';}
+  updatePower(r){this.power=Math.max(0,Math.min(1,r));const pct=Math.round(this.power*100);document.getElementById('power-fill').style.height=pct+'%';document.getElementById('cue-mark').style.top=(7+this.power*64)+'px';document.getElementById('power-pct').textContent=pct+'%';}
+  resetSpin(){this.spinX=0;this.spinY=0;document.getElementById('spin-reticle').style.left='50%';document.getElementById('spin-reticle').style.top='50%';document.getElementById('spin-dot-mini').style.left='50%';document.getElementById('spin-dot-mini').style.top='50%';}
+  addRailBall(ball){const c=BALL_COLORS[ball.id]||{hex:ball.customHex||'#ddd',stripe:false};const d=document.createElement('span');d.className='rail-ball';d.style.background=c.stripe?`linear-gradient(180deg,#fff 0 20%,${c.hex} 20% 80%,#fff 80%)`:ball.customHex||c.hex;d.textContent=ball.id<=15?ball.id:(ball.isRed?'R':ball.snookerVal);document.getElementById('pocketed-rail').appendChild(d);}
+  takeSnapshot(){this.snapshots.push(JSON.stringify(this.balls));if(this.snapshots.length>10)this.snapshots.shift();}
+  fireShot(powerRatio){if(!this.isMyTurn()||!['AIMING','BALL_IN_HAND'].includes(this.state))return;if(this.mode==='online_p2p'&&!this.isHost){if(this.conn&&this.conn.open){this.conn.send({type:'ACTION',angle:this.aimAngle,power:powerRatio,spinX:this.spinX,spinY:this.spinY});this.state='WAITING_SYNC';this.updatePower(0);this.updateHUD();}else this.toast('P2P CONNECTION LOST');return;}this.applyShot(this.aimAngle,powerRatio,this.spinX,this.spinY,true);}
+  applyShot(angle,powerRatio,spinX=0,spinY=0,broadcast=false){
+    const cue=this.cueBall();if(!cue)return;if(this.mode==='practice')this.takeSnapshot();
+    const p=Math.max(.05,Math.min(1,powerRatio)),speed=Math.max(1.4,p*MAX_POWER);
+    cue.potted=false;cue.vx=Math.cos(angle)*speed;cue.vy=Math.sin(angle)*speed;cue.spinX=spinX*speed*.42;cue.spinY=spinY*speed*.4;
+    this.aimAngle=angle;this.firstHitBall=null;this.firstHitWasLegal=false;this.pottedThisTurn=[];this.cueScratched=false;this.isBreak=false;this.state='MOVING';this.updatePower(0);this.turnTime=TURN_SECONDS;this.updateHUD();SFX.hit(p);
+    if(broadcast&&this.mode==='online_p2p'&&this.isHost&&this.conn&&this.conn.open)this.conn.send({type:'SHOT',angle,power:p,spinX,spinY});
+  }
+  handlePocket(ball,pocket){if(ball.potted)return;ball.potted=true;ball.vx=ball.vy=0;this.pocketAnims.push({id:ball.id,hex:ball.customHex,x:pocket.x,y:pocket.y,scale:1});if(ball.id===0){this.cueScratched=true;SFX.pocket(true);}else{this.pottedThisTurn.push(ball);this.addRailBall(ball);SFX.pocket(false);}}
+  stepPhysics(frameScale=1){
+    const substeps=4,dt=frameScale/substeps;
+    for(let s=0;s<substeps;s++){
+      for(const b of this.balls){if(b.potted)continue;b.x+=b.vx*dt;b.y+=b.vy*dt;
+        for(const p of this.pockets){if(Math.hypot(b.x-p.x,b.y-p.y)<p.r){this.handlePocket(b,p);break;}}
+      }
+      for(const b of this.balls){if(b.potted)continue;
+        for(const c of this.cushions){if(c.nx!==0){const minY=Math.min(c.y1,c.y2),maxY=Math.max(c.y1,c.y2);if(b.y>=minY&&b.y<=maxY){if(c.nx===1&&b.x-BALL_R<c.x1&&b.vx<0){b.x=c.x1+BALL_R;b.vx=-b.vx*.88;b.vy+=b.spinX*.12;b.spinX*=.55;SFX.rail(Math.abs(b.vx));}else if(c.nx===-1&&b.x+BALL_R>c.x1&&b.vx>0){b.x=c.x1-BALL_R;b.vx=-b.vx*.88;b.vy-=b.spinX*.12;b.spinX*=.55;SFX.rail(Math.abs(b.vx));}}}
+          else{const minX=Math.min(c.x1,c.x2),maxX=Math.max(c.x1,c.x2);if(b.x>=minX&&b.x<=maxX){if(c.ny===1&&b.y-BALL_R<c.y1&&b.vy<0){b.y=c.y1+BALL_R;b.vy=-b.vy*.88;b.vx-=b.spinX*.12;b.spinX*=.55;SFX.rail(Math.abs(b.vy));}else if(c.ny===-1&&b.y+BALL_R>c.y1&&b.vy>0){b.y=c.y1-BALL_R;b.vy=-b.vy*.88;b.vx+=b.spinX*.12;b.spinX*=.55;SFX.rail(Math.abs(b.vy));}}}
         }
-      }, 10000);
-    });
-
-    this.peer.on('connection', (connection) => {
-      clearTimeout(this.p2pTimer);
-      this.conn = connection;
-      this.isHost = true;
-      this.setupPeerEvents();
-      this.showToast('Online Player Connected!');
-      document.getElementById('online-modal').classList.add('hidden');
-      this.startOnlineMatchAsHost();
-    });
-
-    this.peer.on('error', (err) => {
-      document.getElementById('online-status-text').textContent = 'Connection error. Switching to AI Bot...';
-      setTimeout(() => {
-        document.getElementById('online-modal').classList.add('hidden');
-        this.startMode('8ball_ai');
-      }, 2000);
-    });
-  }
-
-  connectToPeer() {
-    const friendId = document.getElementById('join-room-input').value.trim();
-    if (!friendId) return;
-    clearTimeout(this.p2pTimer);
-    document.getElementById('online-status-text').textContent = `Connecting to ${friendId}...`;
-
-    if (!this.peer) {
-      this.peer = new Peer();
-    }
-
-    this.conn = this.peer.connect(friendId);
-    this.isHost = false;
-    this.setupPeerEvents();
-
-    this.conn.on('open', () => {
-      this.showToast('Connected to Room!');
-      document.getElementById('online-modal').classList.add('hidden');
-      this.mode = 'online_p2p';
-      document.getElementById('mode-indicator').textContent = 'MODE: ONLINE P2P MATCH';
-      document.getElementById('p2-name').textContent = 'OPPONENT';
-      document.getElementById('p2-avatar').textContent = 'P2';
-      this.rack8Ball();
-      this.state = 'AIMING';
-      this.turn = 2; // Guest goes second on break or vice versa
-      this.updateHUD();
-    });
-  }
-
-  setupPeerEvents() {
-    if (!this.conn) return;
-    this.conn.on('data', (data) => {
-      if (data.type === 'SHOT') {
-        this.receivePeerShot(data);
-      } else if (data.type === 'SYNC') {
-        this.balls = data.balls;
-        this.turn = data.turn;
-        this.state = 'AIMING';
-        this.updateHUD();
+        for(const k of this.knuckles){const dx=b.x-k.x,dy=b.y-k.y,d=Math.hypot(dx,dy);if(d<BALL_R&&d>.001){const nx=dx/d,ny=dy/d;b.x=k.x+nx*BALL_R;b.y=k.y+ny*BALL_R;const dot=b.vx*nx+b.vy*ny;if(dot<0){b.vx=(b.vx-2*dot*nx)*.78;b.vy=(b.vy-2*dot*ny)*.78;SFX.rail(Math.abs(dot));}}}
       }
-    });
-  }
-
-  startOnlineMatchAsHost() {
-    this.mode = 'online_p2p';
-    document.getElementById('p2-name').textContent = 'FRIEND';
-    document.getElementById('p2-avatar').textContent = 'P2';
-    this.rack8Ball();
-    this.turn = 1;
-    this.state = 'AIMING';
-    this.updateHUD();
-    this.sendPeerSync();
-  }
-
-  sendPeerShot(data) {
-    const cue = this.getCueBall();
-    cue.vx = data.vx;
-    cue.vy = data.vy;
-    cue.spinX = data.spinX;
-    cue.spinY = data.spinY;
-    this.state = 'MOVING';
-  }
-
-  sendPeerSync() {
-    if (this.conn && this.conn.open) {
-      this.conn.send({ type: 'SYNC', balls: this.balls, turn: this.turn });
+      const minDist=BALL_R*2;
+      for(let i=0;i<this.balls.length;i++){const a=this.balls[i];if(a.potted)continue;for(let j=i+1;j<this.balls.length;j++){const b=this.balls[j];if(b.potted)continue;let dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy);if(d>=minDist)continue;if(d<.0001){dx=.001;dy=0;d=.001;}const nx=dx/d,ny=dy/d,overlap=minDist-d;a.x-=nx*overlap*.5;a.y-=ny*overlap*.5;b.x+=nx*overlap*.5;b.y+=ny*overlap*.5;const rvx=a.vx-b.vx,rvy=a.vy-b.vy,closing=rvx*nx+rvy*ny;if(closing>0){if(!this.firstHitBall){if(a.id===0)this.firstHitBall=b;else if(b.id===0)this.firstHitBall=a;if(this.firstHitBall)this.firstHitWasLegal=this.isLegalTarget(this.firstHitBall);}const impulse=(1+.96)*closing*.5;a.vx-=impulse*nx;a.vy-=impulse*ny;b.vx+=impulse*nx;b.vy+=impulse*ny;SFX.clack(closing);if(a.id===0){a.vx+=a.spinX*nx*.08;a.vy+=a.spinX*ny*.08;}if(b.id===0){b.vx-=b.spinX*nx*.08;b.vy-=b.spinX*ny*.08;}}}}
+    }
+    const friction=Math.pow(.987,frameScale),spinFriction=Math.pow(.955,frameScale);let moving=false;
+    for(const b of this.balls){if(b.potted)continue;b.vx*=friction;b.vy*=friction;b.spinX*=spinFriction;b.spinY*=spinFriction;if(Math.hypot(b.vx,b.vy)<.055){b.vx=0;b.vy=0;}else moving=true;if(b.id===0&&b.spinY){const sp=Math.hypot(b.vx,b.vy);if(sp>.1){b.vx+=b.vx/sp*b.spinY*.002*frameScale;b.vy+=b.vy/sp*b.spinY*.002*frameScale;}}}
+    if(!moving&&this.state==='MOVING'){
+      if(this.mode==='online_p2p'&&!this.isHost)this.state='WAITING_SYNC';
+      else this.evaluateTurnEnd();
     }
   }
-
-  cancelOnline() {
-    clearTimeout(this.p2pTimer);
-    document.getElementById('online-modal').classList.add('hidden');
-    this.startMode('8ball_ai');
+  placeCueAt(x,y){const cue=this.cueBall();if(!cue)return;const nx=Math.max(PLAY_X+BALL_R,Math.min(PLAY_X+PLAY_W-BALL_R,x)),ny=Math.max(PLAY_Y+BALL_R,Math.min(PLAY_Y+PLAY_H-BALL_R,y));const collision=this.balls.some(b=>b.id!==0&&!b.potted&&Math.hypot(nx-b.x,ny-b.y)<BALL_R*2.04);if(collision)return false;cue.potted=false;cue.x=nx;cue.y=ny;cue.vx=cue.vy=0;return true;}
+  placeBotCue(){const cue=this.cueBall();if(!cue)return;for(let i=0;i<60;i++){const x=PLAY_X+PLAY_W*(.18+Math.random()*.17),y=PLAY_Y+PLAY_H*(.18+Math.random()*.64);if(this.placeCueAt(x,y))return;}this.placeCueAt(PLAY_X+PLAY_W*.2,PLAY_Y+PLAY_H*.5);}
+  switchAfterFoul(message){this.turn=this.turn===1?2:1;this.turnTime=TURN_SECONDS;const cue=this.cueBall();if(cue){cue.potted=false;cue.vx=cue.vy=0;cue.x=PLAY_X+PLAY_W*.2;cue.y=PLAY_Y+PLAY_H*.5;this.resolveCueOverlap(cue);}this.state='BALL_IN_HAND';this.toast(message||'FOUL · BALL IN HAND');if(this.mode==='8ball_ai'&&this.turn===2){this.placeBotCue();this.state='AIMING';this.updateHUD();this.triggerAI();}else{this.updateHUD();if(this.mode==='online_p2p'&&this.isHost)this.sendSync();}}
+  evaluateTurnEnd(){
+    if(this.mode==='practice'){if(this.cueScratched){const c=this.cueBall();c.potted=false;this.placeCueAt(PLAY_X+PLAY_W*.22,PLAY_Y+PLAY_H*.5);this.toast('SCRATCH · PLACE CUE BALL');this.state='BALL_IN_HAND';}else this.state='AIMING';this.updateHUD();return;}
+    if(this.mode==='snooker_ai'){this.evaluateSnooker();return;}
+    this.evaluate8Ball();
   }
-
-  rack8Ball() {
-    this.balls = [];
-    const headX = PLAY_X + PLAY_W * 0.23;
-    const centerY = PLAY_Y + PLAY_H / 2;
-
-    this.balls.push(this.createBall(0, headX, centerY));
-
-    const footX = PLAY_X + PLAY_W * 0.73;
-    const rowStepX = BALL_R * Math.sqrt(3) + 0.4;
-    const colStepY = BALL_R * 2 + 0.4;
-
-    const rackOrder = [
-      [1],
-      [9, 2],
-      [10, 8, 3],
-      [4, 14, 6, 11],
-      [12, 5, 13, 15, 7]
-    ];
-
-    for (let r = 0; r < rackOrder.length; r++) {
-      const row = rackOrder[r];
-      const rx = footX + r * rowStepX;
-      const startY = centerY - ((row.length - 1) * colStepY) / 2;
-      for (let c = 0; c < row.length; c++) {
-        const id = row[c];
-        this.balls.push(this.createBall(id, rx, startY + c * colStepY));
-      }
-    }
+  evaluate8Ball(){
+    const shooter=this.turn,group=this.groupForTurn(shooter),eight=this.pottedThisTurn.some(b=>b.id===8);let foul=null;
+    if(this.cueScratched)foul='CUE BALL SCRATCHED';else if(!this.firstHitBall)foul='NO BALL HIT';else if(!group&&this.firstHitBall.id===8)foul='8-BALL HIT FIRST';else if(group){const left=this.balls.filter(b=>!b.potted&&this.groupOf(b.id)===group).length;if(left>0&&this.groupOf(this.firstHitBall.id)!==group)foul='WRONG BALL HIT FIRST';}
+    if(eight){const remaining=group?this.balls.filter(b=>!b.potted&&this.groupOf(b.id)===group).length:7;const legal=!foul&&remaining===0&&this.firstHitBall&&this.firstHitBall.id===8;if(legal)this.finishMatch(shooter===1,`${shooter===1?'YOU':'OPPONENT'} legally pocketed the 8-ball.`);else this.finishMatch(shooter!==1,`The 8-ball was pocketed before the table was cleared or after a foul.`);return;}
+    if(foul){this.switchAfterFoul(`FOUL · ${foul} · BALL IN HAND`);return;}
+    let ownPotted=false;
+    if(!this.p1Group&&!this.p2Group){const first=this.pottedThisTurn.find(b=>this.groupOf(b.id));if(first){const g=this.groupOf(first.id);if(shooter===1){this.p1Group=g;this.p2Group=g==='SOLIDS'?'STRIPES':'SOLIDS';}else{this.p2Group=g;this.p1Group=g==='SOLIDS'?'STRIPES':'SOLIDS';}ownPotted=true;this.toast(`${shooter===1?'YOU':'BOT'} · ${g} ASSIGNED`);}}
+    else ownPotted=this.pottedThisTurn.some(b=>this.groupOf(b.id)===group);
+    if(!ownPotted)this.turn=shooter===1?2:1;
+    this.turnTime=TURN_SECONDS;this.state='AIMING';this.updateHUD();
+    if(this.mode==='online_p2p'&&this.isHost)this.sendSync();
+    if(this.mode==='8ball_ai'&&this.turn===2)this.triggerAI();
+    else if(this.turn===1)this.toast(ownPotted?'YOUR TURN · KEEP SHOOTING':'YOUR TURN');
   }
-
-  rackSnooker() {
-    this.balls = [];
-    const baulkX = PLAY_X + PLAY_W * 0.21;
-    const centerY = PLAY_Y + PLAY_H / 2;
-    const dRadius = PLAY_H * 0.18;
-
-    this.balls.push(this.createBall(0, baulkX - 25, centerY + 20));
-
-    const colorDefs = [
-      { id: 20, val: 2, hex: '#facc15', name: 'Yellow', x: baulkX, y: centerY + dRadius },
-      { id: 21, val: 3, hex: '#16a34a', name: 'Green',  x: baulkX, y: centerY - dRadius },
-      { id: 22, val: 4, hex: '#92400e', name: 'Brown',  x: baulkX, y: centerY },
-      { id: 23, val: 5, hex: '#2563eb', name: 'Blue',   x: PLAY_X + PLAY_W * 0.5, y: centerY },
-      { id: 24, val: 6, hex: '#f472b6', name: 'Pink',   x: PLAY_X + PLAY_W * 0.68, y: centerY },
-      { id: 25, val: 7, hex: '#0f172a', name: 'Black',  x: PLAY_X + PLAY_W * 0.90, y: centerY }
-    ];
-
-    colorDefs.forEach(cd => {
-      const b = this.createBall(cd.id, cd.x, cd.y);
-      b.snookerVal = cd.val;
-      b.customHex = cd.hex;
-      b.spotX = cd.x;
-      b.spotY = cd.y;
-      b.isRed = false;
-      this.balls.push(b);
-    });
-
-    const startX = PLAY_X + PLAY_W * 0.725;
-    const rowStepX = BALL_R * Math.sqrt(3) + 0.4;
-    const colStepY = BALL_R * 2 + 0.4;
-    let redId = 101;
-    for (let r = 0; r < 4; r++) {
-      const count = r + 1;
-      const rx = startX + r * rowStepX;
-      const sy = centerY - ((count - 1) * colStepY) / 2;
-      for (let c = 0; c < count; c++) {
-        const b = this.createBall(redId++, rx, sy + c * colStepY);
-        b.snookerVal = 1;
-        b.customHex = '#dc2626';
-        b.isRed = true;
-        this.balls.push(b);
-      }
+  evaluateSnooker(){
+    const shooter=this.turn,redsBefore=this.balls.some(b=>!b.potted&&b.isRed);const wrongPot=this.pottedThisTurn.some(b=>this.snookerTarget==='RED'?!b.isRed:this.snookerTarget==='COLOR_ANY'?b.isRed:(b.isRed||b.snookerVal!==Number(this.snookerTarget)));let foul=this.cueScratched||!this.firstHitBall||!this.firstHitWasLegal||wrongPot;let points=0;
+    if(foul){const hitVal=this.firstHitBall?(this.firstHitBall.snookerVal||4):4;const penalty=Math.max(4,hitVal,...this.pottedThisTurn.map(b=>b.snookerVal||4));if(shooter===1)this.p2Score+=penalty;else this.p1Score+=penalty;}
+    else{
+      for(const b of this.pottedThisTurn){if(b.isRed){points+=1;}else if(this.snookerTarget==='COLOR_ANY'||Number(this.snookerTarget)===b.snookerVal)points+=b.snookerVal;}
+      if(shooter===1)this.p1Score+=points;else this.p2Score+=points;
     }
+    // In snooker, colours are returned to their spots while reds remain; final colours stay down.
+    for(const b of this.pottedThisTurn){if(!b.isRed&&redsBefore){b.potted=false;b.x=b.spotX;b.y=b.spotY;this.resolveCueOverlap(b);}}
+    const redsRemain=this.balls.some(b=>!b.potted&&b.isRed);
+    if(foul||this.pottedThisTurn.length===0){this.turn=shooter===1?2:1;this.snookerTarget=redsRemain?'RED':String(this.getLowestColorVal());}
+    else if(this.snookerTarget==='RED'){this.snookerTarget='COLOR_ANY';}
+    else if(this.snookerTarget==='COLOR_ANY'){this.snookerTarget=redsRemain?'RED':String(this.getLowestColorVal());}
+    else this.snookerTarget=String(this.getLowestColorVal());
+    if(this.cueScratched){const c=this.cueBall();c.potted=false;this.placeCueAt(PLAY_X+PLAY_W*.2,PLAY_Y+PLAY_H*.5);}
+    const remaining=this.balls.filter(b=>!b.potted&&b.id!==0).length;
+    if(remaining===0||(!redsRemain&&this.getLowestColorVal()===0)){const won=this.p1Score>=this.p2Score;this.finishMatch(won,`Snooker score: ${this.p1Score} – ${this.p2Score}.`);return;}
+    this.turnTime=TURN_SECONDS;this.state='AIMING';this.updateHUD();this.toast(foul?'SNOOKER FOUL · OPPONENT SCORES':points?`+${points} POINT${points===1?'':'S'}`:'NO POT · TURN SWITCHED');if(this.mode==='snooker_ai'&&this.turn===2)this.triggerAI();
   }
-
-  createBall(id, x, y) {
-    return {
-      id, x, y, vx: 0, vy: 0, spinX: 0, spinY: 0,
-      potted: false, snookerVal: 0, isRed: false, customHex: null
-    };
+  resolveCueOverlap(ball){for(let i=0;i<50;i++){const hit=this.balls.find(o=>o!==ball&&!o.potted&&Math.hypot(ball.x-o.x,ball.y-o.y)<BALL_R*2.06);if(!hit)return;ball.y+=BALL_R*1.1;if(ball.y>PLAY_Y+PLAY_H-BALL_R*2){ball.y=PLAY_Y+BALL_R*2;ball.x+=BALL_R*1.1;}if(ball.x>PLAY_X+PLAY_W-BALL_R*2)ball.x=PLAY_X+PLAY_W-BALL_R*2;}}
+  finishMatch(humanWon,reason){if(this.matchEnded)return;this.matchEnded=true;this.state='GAME_OVER';let title=humanWon?'YOU WIN!':'MATCH LOST';let reward='';if(this.mode==='8ball_ai'||this.mode==='snooker_ai'){if(humanWon){const prize=this.stake*2;this.coins+=prize;this.updateCoins();reward=` You earned ${prize} virtual coins.`;}else reward=` You lost the ${this.stake}-coin entry stake.`;}document.getElementById('winner-title').textContent=title;document.getElementById('winner-reason').textContent=reason+reward;document.getElementById('gameover-modal').classList.remove('hidden');if(this.mode==='online_p2p'&&this.isHost&&this.conn&&this.conn.open)this.conn.send({type:'END',title:humanWon?'HOST WINS':'GUEST WINS',reason});}
+  endOnlineFromPeer(data){this.matchEnded=true;this.state='GAME_OVER';document.getElementById('winner-title').textContent=data.title||'MATCH OVER';document.getElementById('winner-reason').textContent=data.reason||'The host ended the match.';document.getElementById('gameover-modal').classList.remove('hidden');}
+  triggerAI(){if(this.mode!=='8ball_ai'&&this.mode!=='snooker_ai')return;if(this.state==='GAME_OVER')return;this.state='AI_THINKING';this.updateHUD();const cue=this.cueBall();if(!cue){this.state='AIMING';return;}
+    const legal=this.balls.filter(b=>this.isLegalTarget(b));if(!legal.length){const all=this.balls.filter(b=>!b.potted&&b.id!==0);if(!all.length){this.evaluateTurnEnd();return;}}
+    const candidates=legal.length?legal:this.balls.filter(b=>!b.potted&&b.id!==0);let best=null,bestScore=-Infinity;
+    for(const target of candidates){for(const pocket of this.pockets){const tx=pocket.x-target.x,ty=pocket.y-target.y,distP=Math.hypot(tx,ty);if(distP<1)continue;const ux=tx/distP,uy=ty/distP,gx=target.x-ux*BALL_R*2.02,gy=target.y-uy*BALL_R*2.02;const dx=gx-cue.x,dy=gy-cue.y,distG=Math.hypot(dx,dy);if(distG<1)continue;const ix=dx/distG,iy=dy/distG,cut=ix*ux+iy*uy;if(cut<.12)continue;if(!this.pathClear(cue.x,cue.y,gx,gy,[0,target.id]))continue;if(!this.pathClear(target.x,target.y,pocket.x,pocket.y,[0,target.id]))continue;
+      const anglePenalty=(1-cut)*75,score=cut*125-distG*.075-distP*.095-anglePenalty;if(score>bestScore){bestScore=score;best={angle:Math.atan2(dy,dx),power:Math.max(.28,Math.min(.88,(distG+distP)/1050+.22)),target,pocket};}}}
+    if(!best){const target=candidates.slice().sort((a,b)=>Math.hypot(a.x-cue.x,a.y-cue.y)-Math.hypot(b.x-cue.x,b.y-cue.y))[0]||this.balls.find(b=>!b.potted&&b.id!==0);if(!target){this.state='AIMING';return;}best={angle:Math.atan2(target.y-cue.y,target.x-cue.x),power:.48};}
+    // Skill levels affect aim error and power choice, never whether the bot takes its turn.
+    const accuracy=[.105,.073,.045,.026,.012][this.botLevel-1];best.angle+=(Math.random()-.5)*accuracy;best.power=Math.min(.94,best.power+((Math.random()-.5)*(.16-(this.botLevel*.025))));
+    const from=this.aimAngle,to=best.angle,start=performance.now(),duration=700+Math.random()*350;const animate=now=>{if(this.state!=='AI_THINKING')return;const t=Math.min(1,(now-start)/duration),ease=1-Math.pow(1-t,3);let delta=((to-from+Math.PI*3)%(Math.PI*2))-Math.PI;this.aimAngle=from+delta*ease;this.power=best.power*ease;if(t<1)requestAnimationFrame(animate);else{this.applyShot(best.angle,best.power,0,0,false);}};requestAnimationFrame(animate);
   }
+  pathClear(x1,y1,x2,y2,ignore){const dx=x2-x1,dy=y2-y1,len=Math.hypot(dx,dy);if(len<1)return true;const ux=dx/len,uy=dy/len;for(const b of this.balls){if(b.potted||ignore.includes(b.id))continue;const bx=b.x-x1,by=b.y-y1,proj=bx*ux+by*uy;if(proj> BALL_R*.4&&proj<len-BALL_R*.2){const perp=Math.abs(bx*uy-by*ux);if(perp<BALL_R*2.02)return false;}}return true;}
+  getAimPrediction(){const cue=this.cueBall();if(!cue||cue.potted)return null;const dx=Math.cos(this.aimAngle),dy=Math.sin(this.aimAngle);let min=Infinity,hit=null;for(const b of this.balls){if(b.id===0||b.potted)continue;const ox=b.x-cue.x,oy=b.y-cue.y,proj=ox*dx+oy*dy;if(proj<=0)continue;const perp=ox*ox+oy*oy-proj*proj;if(perp<(BALL_R*2)**2){const t=proj-Math.sqrt((BALL_R*2)**2-perp);if(t>0&&t<min){min=t;hit=b;}}}const minX=PLAY_X+BALL_R,maxX=PLAY_X+PLAY_W-BALL_R,minY=PLAY_Y+BALL_R,maxY=PLAY_Y+PLAY_H-BALL_R;let wall=Infinity;if(dx>.0001)wall=Math.min(wall,(maxX-cue.x)/dx);if(dx<-.0001)wall=Math.min(wall,(minX-cue.x)/dx);if(dy>.0001)wall=Math.min(wall,(maxY-cue.y)/dy);if(dy<-.0001)wall=Math.min(wall,(minY-cue.y)/dy);if(wall<min){min=wall;hit=null;}if(!Number.isFinite(min))min=240;const gx=cue.x+dx*min,gy=cue.y+dy*min;if(!hit)return{gx,gy,hit:null,legal:true};const nx=hit.x-gx,ny=hit.y-gy,len=Math.hypot(nx,ny)||1;return{gx,gy,hit,legal:this.isLegalTarget(hit),ox:nx/len,oy:ny/len};}
 
-  getCueBall() {
-    return this.balls.find(b => b.id === 0);
+  // P2P: host owns rules and final snapshots. Both clients animate the same shot locally.
+  beginOnline(){this.hideMenus();document.getElementById('online-modal').classList.remove('hidden');document.getElementById('online-status-text').textContent='Starting PeerJS connection…';document.getElementById('my-peer-id').textContent='Generating…';this.closePeer(false);this.mode='online_p2p';this.onlineStarted=false;this.isHost=true;
+    if(typeof window.Peer!=='function'){document.getElementById('online-status-text').textContent='PeerJS could not load. Switching to AI.';setTimeout(()=>this.fallbackToAI(),1200);return;}
+    this.onlineTimer=setTimeout(()=>{if(!this.onlineStarted)this.fallbackToAI();},30000);
+    try{this.peer=new Peer(undefined,{debug:0});this.peer.on('open',id=>{document.getElementById('my-peer-id').textContent=id;document.getElementById('online-status-text').textContent='Room ready. Share the code or join a friend.';});this.peer.on('connection',conn=>{if(this.conn&&this.conn.open){conn.close();return;}this.isHost=true;this.conn=conn;this.bindConnection(conn,true);});this.peer.on('error',err=>{document.getElementById('online-status-text').textContent='Peer connection problem: '+(err.type||'network error');if(!this.onlineStarted){clearTimeout(this.onlineTimer);this.onlineTimer=setTimeout(()=>this.fallbackToAI(),3500);}});this.peer.on('disconnected',()=>{if(!this.onlineStarted)document.getElementById('online-status-text').textContent='Signalling service disconnected. Retrying…';});}
+    catch(e){document.getElementById('online-status-text').textContent='Could not start P2P. Switching to AI.';setTimeout(()=>this.fallbackToAI(),1000);}
   }
-
-  isBallLegalTarget(ball) {
-    if (!ball || ball.id === 0 || ball.potted) return false;
-    if (this.mode === 'practice' || this.mode === 'online_p2p') return ball.id !== 8; // simplified open targeting for online p2p
-
-    if (this.mode === 'snooker_ai') {
-      const redsLeft = this.balls.some(b => !b.potted && b.isRed);
-      if (this.snookerTarget === 'RED') {
-        return redsLeft ? ball.isRed : (ball.snookerVal === this.getLowestColorVal());
-      } else if (this.snookerTarget === 'COLOR_ANY') {
-        return !ball.isRed;
-      } else {
-        return ball.snookerVal === this.snookerTarget;
-      }
-    }
-
-    const currentGroup = (this.turn === 1) ? this.p1Group : this.p2Group;
-    if (!currentGroup) return ball.id !== 8;
-
-    const remainingInGroup = this.balls.filter(b => !b.potted && this.getBallGroup(b.id) === currentGroup).length;
-    if (remainingInGroup === 0) return ball.id === 8;
-    return this.getBallGroup(b.id) === currentGroup;
+  bindConnection(conn,hostSide){conn.on('open',()=>{if(hostSide){clearTimeout(this.onlineTimer);this.onlineStarted=true;this.mode='online_p2p';this.initializeRound('online_p2p',false);this.hideMenus();this.updateModeLabel();this.toast('FRIEND CONNECTED · HOST BREAKS');this.sendSync();}else{clearTimeout(this.onlineTimer);this.onlineStarted=true;this.isHost=false;this.mode='online_p2p';document.getElementById('online-status-text').textContent='Connected. Waiting for host table…';conn.send({type:'JOIN'});}});
+    conn.on('data',data=>this.handlePeerData(data));conn.on('close',()=>{if(this.mode==='online_p2p'&&!this.matchEnded){this.toast('P2P PLAYER DISCONNECTED');if(this.isHost){this.mode='8ball_ai';this.pickBot();this.turn=1;this.state='AIMING';this.updateModeLabel();this.updateHUD();}else{this.state='GAME_OVER';document.getElementById('winner-title').textContent='CONNECTION LOST';document.getElementById('winner-reason').textContent='The host disconnected. Return to the main menu to start another game.';document.getElementById('gameover-modal').classList.remove('hidden');}}});conn.on('error',()=>this.toast('P2P DATA CONNECTION ERROR'));}
+  connectToPeer(){const id=document.getElementById('join-room-input').value.trim();if(!id){this.toast('ENTER A ROOM CODE');return;}if(!this.peer||!this.peer.open){this.toast('WAIT UNTIL YOUR ROOM SERVICE IS READY');return;}try{document.getElementById('online-status-text').textContent='Connecting to '+id+'…';const c=this.peer.connect(id,{reliable:true});this.conn=c;this.isHost=false;this.bindConnection(c,false);}catch(e){this.toast('INVALID ROOM CODE');}}
+  handlePeerData(data){if(!data||typeof data!=='object')return;
+    if(data.type==='JOIN'&&this.isHost&&!this.onlineStarted){this.onlineStarted=true;clearTimeout(this.onlineTimer);this.mode='online_p2p';this.initializeRound('online_p2p',false);this.hideMenus();this.updateModeLabel();this.sendSync();this.toast('PLAYER JOINED · YOUR BREAK');}
+    else if(data.type==='ACTION'&&this.isHost&&this.mode==='online_p2p'&&this.turn===2){if(data.timeout&&(this.state==='AIMING'||this.state==='BALL_IN_HAND')){this.switchAfterFoul('GUEST TIME OUT · YOUR BALL IN HAND');return;}if(this.state==='AIMING'){const a=Number(data.angle),p=Number(data.power);if(Number.isFinite(a)&&Number.isFinite(p))this.applyShot(a,Math.max(.05,Math.min(1,p)),Number(data.spinX)||0,Number(data.spinY)||0,true);}}
+    else if(data.type==='SHOT'&&!this.isHost&&this.mode==='online_p2p'){this.applyShot(data.angle,data.power,data.spinX,data.spinY,false);}
+    else if(data.type==='SYNC'&&!this.isHost&&this.mode==='online_p2p'){this.applySnapshot(data.snapshot);}
+    else if(data.type==='PLACE'&&this.isHost&&this.mode==='online_p2p'&&this.turn===2&&this.state==='BALL_IN_HAND'){if(this.placeCueAt(Number(data.x),Number(data.y))){this.state='AIMING';this.sendSync();}}
+    else if(data.type==='END'&&!this.isHost){this.endOnlineFromPeer(data);}
   }
+  makeSnapshot(){return{balls:this.balls.map(b=>({...b})),turn:this.turn,p1Group:this.p1Group,p2Group:this.p2Group,p1Score:this.p1Score,p2Score:this.p2Score,snookerTarget:this.snookerTarget,isBreak:this.isBreak,state:this.state,aimAngle:this.aimAngle,turnTime:this.turnTime};}
+  sendSync(){if(this.conn&&this.conn.open&&this.isHost)this.conn.send({type:'SYNC',snapshot:this.makeSnapshot()});}
+  applySnapshot(s){if(!s||!Array.isArray(s.balls))return;this.balls=s.balls.map(b=>({...b}));this.turn=s.turn;this.p1Group=s.p1Group;this.p2Group=s.p2Group;this.p1Score=s.p1Score||0;this.p2Score=s.p2Score||0;this.snookerTarget=s.snookerTarget||'RED';this.isBreak=!!s.isBreak;this.aimAngle=s.aimAngle||0;this.turnTime=Number.isFinite(s.turnTime)?s.turnTime:TURN_SECONDS;this.mode='online_p2p';this.state=s.state==='BALL_IN_HAND'?'BALL_IN_HAND':'AIMING';this.pottedThisTurn=[];this.firstHitBall=null;this.firstHitWasLegal=false;this.cueScratched=false;document.getElementById('online-modal').classList.add('hidden');this.updateModeLabel();this.updateHUD();}
+  fallbackToAI(){clearTimeout(this.onlineTimer);this.closePeer();document.getElementById('online-modal').classList.add('hidden');this.toast('NO PLAYER FOUND · AI MATCH STARTING');this.mode='8ball_ai';this.startMode('8ball_ai');}
+  cancelOnline(){this.closePeer();document.getElementById('online-modal').classList.add('hidden');this.startMode('8ball_ai');}
+  closePeer(resetMode=true){clearTimeout(this.onlineTimer);this.onlineTimer=null;try{if(this.conn){this.conn.close();this.conn=null;}if(this.peer){this.peer.destroy();this.peer=null;}}catch(e){}this.onlineStarted=false;if(resetMode&&this.mode==='online_p2p')this.mode='8ball_ai';}
 
-  getBallGroup(id) {
-    if (id >= 1 && id <= 7) return 'SOLIDS';
-    if (id >= 9 && id <= 15) return 'STRIPES';
-    return null;
+  render(){const c=this.ctx;c.save();c.clearRect(0,0,LOGICAL_W,LOGICAL_H);this.drawTable(c);this.drawPocketAnimations(c);this.drawBalls(c);if(['AIMING','BALL_IN_HAND','AI_THINKING'].includes(this.state)&&this.isMyTurn())this.drawAim(c);c.restore();}
+  roundRect(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
+  drawTable(c){
+    // Thick laminated wooden cabinet with layered highlights.
+    const wood=c.createLinearGradient(0,0,0,LOGICAL_H);wood.addColorStop(0,'#8a532a');wood.addColorStop(.22,'#542b16');wood.addColorStop(.58,'#31170d');wood.addColorStop(1,'#170b07');c.fillStyle=wood;this.roundRect(c,5,5,LOGICAL_W-10,LOGICAL_H-10,34);c.fill();
+    c.strokeStyle='rgba(245,190,116,.6)';c.lineWidth=3;this.roundRect(c,12,12,LOGICAL_W-24,LOGICAL_H-24,29);c.stroke();
+    const rail=c.createLinearGradient(0,22,0,RAIL);rail.addColorStop(0,'#a86e3e');rail.addColorStop(.35,'#62371f');rail.addColorStop(1,'#261108');c.fillStyle=rail;this.roundRect(c,24,24,LOGICAL_W-48,LOGICAL_H-48,24);c.fill();
+    c.strokeStyle='rgba(255,216,159,.22)';c.lineWidth=2;this.roundRect(c,31,31,LOGICAL_W-62,LOGICAL_H-62,19);c.stroke();
+    const felt=FELTS[this.feltStyle]||FELTS.emerald,fg=c.createRadialGradient(LOGICAL_W*.48,LOGICAL_H*.46,80,LOGICAL_W*.5,LOGICAL_H*.5,PLAY_W*.72);fg.addColorStop(0,felt.center);fg.addColorStop(1,felt.edge);c.fillStyle=fg;c.fillRect(PLAY_X,PLAY_Y,PLAY_W,PLAY_H);
+    // Fine cloth grain, deterministic and inexpensive.
+    c.save();c.globalAlpha=.085;c.strokeStyle='#d9f7e9';c.lineWidth=.6;for(let y=PLAY_Y+9;y<PLAY_Y+PLAY_H;y+=13){c.beginPath();c.moveTo(PLAY_X+5,y);c.lineTo(PLAY_X+PLAY_W-5,y+((Math.floor(y/13)%2)?1:-1));c.stroke();}c.restore();
+    c.strokeStyle='rgba(0,0,0,.48)';c.lineWidth=7;c.strokeRect(PLAY_X,PLAY_Y,PLAY_W,PLAY_H);
+    c.strokeStyle=felt.line;c.lineWidth=1.6;const baulk=PLAY_X+PLAY_W*.23,cy=PLAY_Y+PLAY_H/2;c.beginPath();c.moveTo(baulk,PLAY_Y+2);c.lineTo(baulk,PLAY_Y+PLAY_H-2);c.stroke();
+    if(this.mode==='snooker_ai'){c.beginPath();c.arc(baulk,cy,PLAY_H*.18,Math.PI*.5,Math.PI*1.5);c.stroke();}
+    // Baulk and rack spots plus traditional rail diamonds.
+    c.fillStyle='rgba(255,255,255,.5)';c.beginPath();c.arc(PLAY_X+PLAY_W*.73,cy,3.5,0,Math.PI*2);c.fill();
+    c.fillStyle='rgba(255,220,157,.7)';for(let i=1;i<=7;i++){const x=PLAY_X+PLAY_W*i/8;for(const y of [35,LOGICAL_H-35]){c.beginPath();c.moveTo(x,y-4);c.lineTo(x+4,y);c.lineTo(x,y+4);c.lineTo(x-4,y);c.closePath();c.fill();}}
+    c.fillStyle='rgba(255,229,184,.2)';c.font='900 18px system-ui';c.textAlign='center';c.fillText('G A M E R K I E',LOGICAL_W/2,LOGICAL_H-36);
+    for(const p of this.pockets){c.beginPath();c.arc(p.x,p.y,p.r+11,0,Math.PI*2);c.fillStyle='#231006';c.fill();c.beginPath();c.arc(p.x,p.y,p.r+5,0,Math.PI*2);c.fillStyle='#b47a45';c.fill();const pg=c.createRadialGradient(p.x-5,p.y-6,2,p.x,p.y,p.r+3);pg.addColorStop(0,'#020504');pg.addColorStop(.72,'#030806');pg.addColorStop(1,'#26352e');c.beginPath();c.arc(p.x,p.y,p.r,0,Math.PI*2);c.fillStyle=pg;c.fill();c.strokeStyle='rgba(255,221,177,.22)';c.lineWidth=1;c.stroke();}
   }
+  drawPocketAnimations(c){for(let i=this.pocketAnims.length-1;i>=0;i--){const a=this.pocketAnims[i];a.scale-=.075;if(a.scale<=0){this.pocketAnims.splice(i,1);continue;}c.save();c.translate(a.x,a.y);c.scale(a.scale,a.scale);c.beginPath();c.arc(0,0,BALL_R,0,Math.PI*2);c.fillStyle=a.hex||'#fff';c.fill();c.restore();}}
+  drawBalls(c){for(const b of this.balls){if(b.potted)continue;const info=BALL_COLORS[b.id]||{hex:b.customHex||'#d42',stripe:false};const col=b.customHex||info.hex;
+      c.beginPath();c.ellipse(b.x+3,b.y+5,BALL_R*.98,BALL_R*.86,0,0,Math.PI*2);c.fillStyle='rgba(0,0,0,.4)';c.fill();
+      c.save();c.beginPath();c.arc(b.x,b.y,BALL_R,0,Math.PI*2);c.clip();
+      if(info.stripe&&!b.customHex){c.fillStyle='#f8fafc';c.fillRect(b.x-BALL_R,b.y-BALL_R,BALL_R*2,BALL_R*2);c.fillStyle=col;c.fillRect(b.x-BALL_R,b.y-BALL_R*.55,BALL_R*2,BALL_R*1.1);}else{c.fillStyle=col;c.fillRect(b.x-BALL_R,b.y-BALL_R,BALL_R*2,BALL_R*2);}
+      if(b.id!==0&&b.id<=15){c.beginPath();c.arc(b.x,b.y,BALL_R*.48,0,Math.PI*2);c.fillStyle='rgba(255,255,255,.96)';c.fill();c.strokeStyle='rgba(0,0,0,.25)';c.lineWidth=.8;c.stroke();c.fillStyle='#101820';c.font='900 13px Arial,sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(String(b.id),b.x,b.y+.5);}
+      const shade=c.createRadialGradient(b.x-BALL_R*.39,b.y-BALL_R*.42,1,b.x,b.y,BALL_R*1.08);shade.addColorStop(0,'rgba(255,255,255,.72)');shade.addColorStop(.24,'rgba(255,255,255,.12)');shade.addColorStop(.72,'rgba(0,0,0,.03)');shade.addColorStop(1,'rgba(0,0,0,.5)');c.fillStyle=shade;c.fillRect(b.x-BALL_R,b.y-BALL_R,BALL_R*2,BALL_R*2);c.restore();
+      c.beginPath();c.arc(b.x-BALL_R*.34,b.y-BALL_R*.38,2.1,0,Math.PI*2);c.fillStyle='rgba(255,255,255,.55)';c.fill();
+      if(b.id===0&&this.state==='BALL_IN_HAND'&&this.isMyTurn()){c.save();c.strokeStyle='#54e4db';c.lineWidth=2.5;c.setLineDash([6,4]);c.beginPath();c.arc(b.x,b.y,BALL_R+7,0,Math.PI*2);c.stroke();c.restore();}
+    }}
+  drawAim(c){const cue=this.cueBall();if(!cue||cue.potted)return;const pred=this.getAimPrediction();if(pred){c.save();c.beginPath();c.moveTo(cue.x,cue.y);c.lineTo(pred.gx,pred.gy);c.strokeStyle=pred.legal?'rgba(255,255,255,.84)':'rgba(255,85,91,.9)';c.lineWidth=2.2;c.setLineDash([8,5]);c.stroke();c.setLineDash([]);c.beginPath();c.arc(pred.gx,pred.gy,BALL_R,0,Math.PI*2);c.strokeStyle=pred.legal?'#fff':'#ff6572';c.lineWidth=1.8;c.stroke();if(pred.hit){c.beginPath();c.moveTo(pred.hit.x,pred.hit.y);c.lineTo(pred.hit.x+pred.ox*130,pred.hit.y+pred.oy*130);c.strokeStyle='rgba(255,255,255,.8)';c.lineWidth=2.2;c.stroke();}c.restore();}
+    c.save();c.translate(cue.x,cue.y);c.rotate(this.aimAngle+Math.PI);const pull=17+this.power*102,len=330;let colors;if(this.cueStyle==='neon')colors=['#d9fff9','#2be6dc','#087f79','#082c2b'];else if(this.cueStyle==='gold')colors=['#fff5c2','#efbd42','#9f6c1b','#351e09'];else colors=['#f4e5c5','#c58a4a','#78431f','#261006'];const g=c.createLinearGradient(pull,0,pull+len,0);g.addColorStop(0,colors[0]);g.addColorStop(.035,colors[1]);g.addColorStop(.48,colors[1]);g.addColorStop(.51,colors[2]);g.addColorStop(1,colors[3]);c.fillStyle=g;c.beginPath();c.moveTo(pull,-2.7);c.lineTo(pull+len,-6.2);c.lineTo(pull+len,6.2);c.lineTo(pull,2.7);c.closePath();c.fill();c.fillStyle='#e9e5d7';c.fillRect(pull-3,-2.7,7,5.4);c.restore();}
 
-  getLowestColorVal() {
-    const colors = this.balls.filter(b => !b.potted && !b.isRed && b.id !== 0);
-    if (colors.length === 0) return 0;
-    return Math.min(...colors.map(c => c.snookerVal));
+  bindEvents(){
+    window.addEventListener('resize',()=>this.resize());
+    const pos=e=>{const r=this.canvas.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*LOGICAL_W,y:(e.clientY-r.top)/r.height*LOGICAL_H};};
+    this.canvas.addEventListener('pointerdown',e=>{SFX.init();if(!this.isMyTurn()||!['AIMING','BALL_IN_HAND'].includes(this.state))return;const p=pos(e),cue=this.cueBall();if(this.state==='BALL_IN_HAND'){this.cueDrag=true;this.placeCueAt(p.x,p.y);}else{this.aimDrag=true;this.aimAngle=Math.atan2(p.y-cue.y,p.x-cue.x);}this.canvas.setPointerCapture(e.pointerId);});
+    this.canvas.addEventListener('pointermove',e=>{if(!this.aimDrag&&!this.cueDrag)return;const p=pos(e),cue=this.cueBall();if(this.cueDrag)this.placeCueAt(p.x,p.y);else if(cue)this.aimAngle=Math.atan2(p.y-cue.y,p.x-cue.x);});
+    const finishCanvas=()=>{if(this.cueDrag){if(this.mode==='online_p2p'&&!this.isHost&&this.conn&&this.conn.open){const c=this.cueBall();this.conn.send({type:'PLACE',x:c.x,y:c.y});this.state='WAITING_SYNC';}else{this.state='AIMING';if(this.mode==='online_p2p'&&this.isHost)this.sendSync();}}this.cueDrag=false;this.aimDrag=false;this.updateHUD();};
+    this.canvas.addEventListener('pointerup',finishCanvas);this.canvas.addEventListener('pointercancel',finishCanvas);
+    const track=document.getElementById('power-track');let startY=0;track.addEventListener('pointerdown',e=>{SFX.init();if(!this.isMyTurn()||!['AIMING','BALL_IN_HAND'].includes(this.state))return;this.powerDrag=true;startY=e.clientY;track.setPointerCapture(e.pointerId);});track.addEventListener('pointermove',e=>{if(!this.powerDrag)return;const rect=track.getBoundingClientRect();this.updatePower(Math.max(0,Math.min(1,(e.clientY-startY)/(rect.height*.82))));});const releasePower=()=>{if(!this.powerDrag)return;this.powerDrag=false;const p=this.power;this.updatePower(0);if(p>=.04)this.fireShot(p);};track.addEventListener('pointerup',releasePower);track.addEventListener('pointercancel',releasePower);
+    const wheel=document.getElementById('aim-wheel');let lastY=0;wheel.addEventListener('pointerdown',e=>{if(!this.isMyTurn()||!['AIMING','BALL_IN_HAND'].includes(this.state))return;this.wheelDrag=true;lastY=e.clientY;wheel.setPointerCapture(e.pointerId);});wheel.addEventListener('pointermove',e=>{if(!this.wheelDrag)return;const d=e.clientY-lastY;lastY=e.clientY;this.aimAngle+=d*.002;wheel.style.backgroundPositionY=(parseFloat(wheel.style.backgroundPositionY||0)+d)+'px';});const endWheel=()=>this.wheelDrag=false;wheel.addEventListener('pointerup',endWheel);wheel.addEventListener('pointercancel',endWheel);
+    document.getElementById('spin-btn').addEventListener('click',()=>document.getElementById('spin-modal').classList.remove('hidden'));
+    const spin=document.getElementById('spin-wheel-large');const setSpin=e=>{const r=spin.getBoundingClientRect(),cx=r.width/2,cy=r.height/2;let x=(e.clientX-r.left-cx)/(cx*.78),y=(e.clientY-r.top-cy)/(cy*.78),m=Math.hypot(x,y);if(m>1){x/=m;y/=m;}this.spinX=x;this.spinY=-y;const px=50+x*38,py=50+y*38;['spin-reticle','spin-dot-mini'].forEach(id=>{document.getElementById(id).style.left=px+'%';document.getElementById(id).style.top=py+'%';});};spin.addEventListener('pointerdown',e=>{this.spinDrag=true;setSpin(e);spin.setPointerCapture(e.pointerId);});spin.addEventListener('pointermove',e=>{if(this.spinDrag)setSpin(e);});spin.addEventListener('pointerup',()=>this.spinDrag=false);spin.addEventListener('pointercancel',()=>this.spinDrag=false);
+    document.getElementById('spin-reset-btn').addEventListener('click',()=>this.resetSpin());document.getElementById('spin-apply-btn').addEventListener('click',()=>document.getElementById('spin-modal').classList.add('hidden'));
+    document.getElementById('menu-btn').addEventListener('click',()=>this.showMenu());document.getElementById('resume-btn').addEventListener('click',()=>document.getElementById('menu-modal').classList.add('hidden'));
+    document.getElementById('sound-btn').addEventListener('click',e=>{SFX.muted=!SFX.muted;e.currentTarget.textContent=SFX.muted?'🔇':'🔊';});
+    document.getElementById('fullscreen-btn').addEventListener('click',async()=>{try{if(!document.fullscreenElement){await document.documentElement.requestFullscreen();if(screen.orientation&&screen.orientation.lock)await screen.orientation.lock('landscape').catch(()=>{});}else{await document.exitFullscreen();if(screen.orientation&&screen.orientation.unlock)screen.orientation.unlock();}}catch(e){this.toast('FULLSCREEN NOT AVAILABLE IN THIS BROWSER');}});
+    document.getElementById('undo-btn').addEventListener('click',()=>{if(this.mode==='practice'&&this.state!=='MOVING'&&this.snapshots.length){this.balls=JSON.parse(this.snapshots.pop());this.state='AIMING';this.turn=1;this.toast('SHOT UNDONE');this.updateHUD();}});
+    document.querySelectorAll('#stake-pills .pill').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#stake-pills .pill').forEach(x=>x.classList.remove('active'));b.classList.add('active');this.stake=Number(b.dataset.stake);}));
+    document.querySelectorAll('#cue-pills .pill').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#cue-pills .pill').forEach(x=>x.classList.remove('active'));b.classList.add('active');this.cueStyle=b.dataset.cue;}));
+    document.querySelectorAll('#felt-pills .pill').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#felt-pills .pill').forEach(x=>x.classList.remove('active'));b.classList.add('active');this.feltStyle=b.dataset.felt;}));
+    document.querySelectorAll('[data-mode]').forEach(b=>b.addEventListener('click',()=>this.startMode(b.dataset.mode)));
+    document.getElementById('join-room-btn').addEventListener('click',()=>this.connectToPeer());document.getElementById('cancel-online-btn').addEventListener('click',()=>this.cancelOnline());
+    document.getElementById('copy-code-btn').addEventListener('click',async()=>{const id=document.getElementById('my-peer-id').textContent;try{await navigator.clipboard.writeText(id);this.toast('ROOM CODE COPIED');}catch(e){const input=document.getElementById('join-room-input');input.value=id;input.select();this.toast('SELECT AND COPY THE ROOM CODE');}});
+    document.getElementById('daily-bonus-btn').addEventListener('click',()=>this.claimDailyBonus());
+    document.getElementById('rematch-btn').addEventListener('click',()=>{const m=this.mode;document.getElementById('gameover-modal').classList.add('hidden');if(m==='online_p2p'){this.showMenu();}else this.startMode(m);});
+    document.getElementById('result-menu-btn').addEventListener('click',()=>{document.getElementById('gameover-modal').classList.add('hidden');this.closePeer();this.showMenu();});
+    window.addEventListener('keydown',e=>{if(e.key==='Escape'){document.getElementById('spin-modal').classList.add('hidden');}if(e.key==='ArrowLeft'&&this.isMyTurn())this.aimAngle-=.035;if(e.key==='ArrowRight'&&this.isMyTurn())this.aimAngle+=.035;if(e.code==='Space'&&this.isMyTurn()&&this.state==='AIMING'){e.preventDefault();this.fireShot(.55);}});
   }
-
-  computeAimPrediction() {
-    const cue = this.getCueBall();
-    if (!cue || cue.potted) return null;
-
-    const dx = Math.cos(this.aimAngle);
-    const dy = Math.sin(this.aimAngle);
-
-    let minT = Infinity;
-    let hitBall = null;
-
-    const collisionDist = BALL_R * 2;
-    for (const b of this.balls) {
-      if (b.id === 0 || b.potted) continue;
-      const ox = b.x - cue.x;
-      const oy = b.y - cue.y;
-      const proj = ox * dx + oy * dy;
-      if (proj <= 0) continue;
-
-      const perpSq = (ox * ox + oy * oy) - proj * proj;
-      const radSq = collisionDist * collisionDist;
-      if (perpSq < radSq) {
-        const t = proj - Math.sqrt(radSq - perpSq);
-        if (t > 0 && t < minT) {
-          minT = t;
-          hitBall = b;
-        }
-      }
-    }
-
-    const minX = PLAY_X + BALL_R;
-    const maxX = PLAY_X + PLAY_W - BALL_R;
-    const minY = PLAY_Y + BALL_R;
-    const maxY = PLAY_Y + PLAY_H - BALL_R;
-
-    let wallT = Infinity;
-    if (dx > 0.0001) wallT = Math.min(wallT, (maxX - cue.x) / dx);
-    if (dx < -0.0001) wallT = Math.min(wallT, (minX - cue.x) / dx);
-    if (dy > 0.0001) wallT = Math.min(wallT, (maxY - cue.y) / dy);
-    if (dy < -0.0001) wallT = Math.min(wallT, (minY - cue.y) / dy);
-
-    if (wallT < minT) {
-      minT = wallT;
-      hitBall = null;
-    }
-
-    const ghostX = cue.x + dx * minT;
-    const ghostY = cue.y + dy * minT;
-
-    let objDirX = 0, objDirY = 0;
-    let cueDeflectX = 0, cueDeflectY = 0;
-    let isLegal = true;
-
-    if (hitBall) {
-      isLegal = this.isBallLegalTarget(hitBall);
-      const nx = hitBall.x - ghostX;
-      const ny = hitBall.y - ghostY;
-      const len = Math.hypot(nx, ny) || 1;
-      objDirX = nx / len;
-      objDirY = ny / len;
-
-      const dot = dx * objDirX + dy * objDirY;
-      let tx = dx - dot * objDirX;
-      let ty = dy - dot * objDirY;
-      const tLen = Math.hypot(tx, ty);
-      if (tLen > 0.05) {
-        tx /= tLen;
-        ty /= tLen;
-      }
-      cueDeflectX = tx + objDirX * (this.spinY * 0.55) - dy * (this.spinX * 0.25);
-      cueDeflectY = ty + objDirY * (this.spinY * 0.55) + dx * (this.spinX * 0.25);
-    }
-
-    return { ghostX, ghostY, hitBall, isLegal, objDirX, objDirY, cueDeflectX, cueDeflectY };
-  }
-
-  fireShot(powerRatio) {
-    const cue = this.getCueBall();
-    if (!cue || (this.state !== 'AIMING' && this.state !== 'BALL_IN_HAND' && this.state !== 'AI_THINKING')) return;
-
-    if (this.mode === 'practice') {
-      this.historySnapshots.push(JSON.stringify(this.balls));
-      if (this.historySnapshots.length > 10) this.historySnapshots.shift();
-    }
-
-    const maxSpeed = 27.5;
-    const speed = Math.max(1.2, powerRatio * maxSpeed);
-
-    cue.vx = Math.cos(this.aimAngle) * speed;
-    cue.vy = Math.sin(this.aimAngle) * speed;
-    cue.spinY = this.spinY * speed * 0.42;
-    cue.spinX = this.spinX * speed * 0.35;
-
-    if (this.mode === 'online_p2p' && this.conn && this.conn.open) {
-      this.conn.send({
-        type: 'SHOT',
-        vx: cue.vx, vy: cue.vy, spinX: cue.spinX, spinY: cue.spinY
-      });
-    }
-
-    this.firstHitBall = null;
-    this.pottedThisTurn = [];
-    this.cueScratched = false;
-    this.isBreakShot = false;
-
-    SFX.playCueHit(powerRatio);
-    this.state = 'MOVING';
-    this.pullPower = 0;
-    this.updatePowerUI(0);
-    this.updateHUD();
-  }
-
-  stepPhysics() {
-    const SUBSTEPS = 8;
-    const dt = 1 / SUBSTEPS;
-
-    for (let s = 0; s < SUBSTEPS; s++) {
-      for (const b of this.balls) {
-        if (b.potted) continue;
-        b.x += b.vx * dt;
-        b.y += b.vy * dt;
-
-        for (const p of this.pockets) {
-          const dist = Math.hypot(b.x - p.x, b.y - p.y);
-          if (dist < p.r) {
-            this.handleBallPocketed(b, p);
-            break;
-          }
-        }
-      }
-
-      for (const b of this.balls) {
-        if (b.potted) continue;
-
-        for (const c of this.cushions) {
-          if (c.nx !== 0) {
-            const minY = Math.min(c.y1, c.y2);
-            const maxY = Math.max(c.y1, c.y2);
-            if (b.y >= minY && b.y <= maxY) {
-              if (c.nx === 1 && b.x - BALL_R < c.x1 && b.vx < 0) {
-                b.x = c.x1 + BALL_R;
-                b.vx = -b.vx * 0.84;
-                b.vy += b.spinX * 0.18;
-                b.spinX *= 0.5;
-                SFX.playCushionHit(Math.hypot(b.vx, b.vy));
-              } else if (c.nx === -1 && b.x + BALL_R > c.x1 && b.vx > 0) {
-                b.x = c.x1 - BALL_R;
-                b.vx = -b.vx * 0.84;
-                b.vy -= b.spinX * 0.18;
-                b.spinX *= 0.5;
-                SFX.playCushionHit(Math.hypot(b.vx, b.vy));
-              }
-            }
-          } else {
-            const minX = Math.min(c.x1, c.x2);
-            const maxX = Math.max(c.x1, c.x2);
-            if (b.x >= minX && b.x <= maxX) {
-              if (c.ny === 1 && b.y - BALL_R < c.y1 && b.vy < 0) {
-                b.y = c.y1 + BALL_R;
-                b.vy = -b.vy * 0.84;
-                b.vx -= b.spinX * 0.18;
-                b.spinX *= 0.5;
-                SFX.playCushionHit(Math.hypot(b.vx, b.vy));
-              } else if (c.ny === -1 && b.y + BALL_R > c.y1 && b.vy > 0) {
-                b.y = c.y1 - BALL_R;
-                b.vy = -b.vy * 0.84;
-                b.vx += b.spinX * 0.18;
-                b.spinX *= 0.5;
-                SFX.playCushionHit(Math.hypot(b.vx, b.vy));
-              }
-            }
-          }
-        }
-
-        for (const k of this.knuckles) {
-          const dx = b.x - k.x;
-          const dy = b.y - k.y;
-          const dist = Math.hypot(dx, dy);
-          if (dist < BALL_R && dist > 0.001) {
-            const nx = dx / dist;
-            const ny = dy / dist;
-            b.x = k.x + nx * BALL_R;
-            b.y = k.y + ny * BALL_R;
-            const dot = b.vx * nx + b.vy * ny;
-            if (dot < 0) {
-              b.vx = (b.vx - 2 * dot * nx) * 0.78;
-              b.vy = (b.vy - 2 * dot * ny) * 0.78;
-              SFX.playCushionHit(Math.abs(dot));
-            }
-          }
-        }
-      }
-
-      const n = this.balls.length;
-      const minDist = BALL_R * 2;
-      for (let i = 0; i < n; i++) {
-        const b1 = this.balls[i];
-        if (b1.potted) continue;
-        for (let j = i + 1; j < n; j++) {
-          const b2 = this.balls[j];
-          if (b2.potted) continue;
-
-          const dx = b2.x - b1.x;
-          const dy = b2.y - b1.y;
-          const dist = Math.hypot(dx, dy);
-
-          if (dist < minDist && dist > 0.0001) {
-            const nx = dx / dist;
-            const ny = dy / dist;
-            const overlap = (minDist - dist) * 0.5;
-            b1.x -= nx * overlap;
-            b1.y -= ny * overlap;
-            b2.x += nx * overlap;
-            b2.y += ny * overlap;
-
-            const rvx = b1.vx - b2.vx;
-            const rvy = b1.vy - b2.vy;
-            const velAlongNormal = rvx * nx + rvy * ny;
-
-            if (velAlongNormal > 0) {
-              if (!this.firstHitBall) {
-                if (b1.id === 0) this.firstHitBall = b2;
-                else if (b2.id === 0) this.firstHitBall = b1;
-              }
-
-              const restitution = 0.94;
-              const impulse = velAlongNormal * restitution;
-              b1.vx -= nx * impulse;
-              b1.vy -= ny * impulse;
-              b2.vx += nx * impulse;
-              b2.vy += ny * impulse;
-              SFX.playBallClack(velAlongNormal);
-            }
-          }
-        }
-      }
-    }
-
-    let anyMoving = false;
-    for (const b of this.balls) {
-      if (b.potted) continue;
-      b.vx *= 0.986;
-      b.vy *= 0.986;
-      b.spinX *= 0.96;
-      b.spinY *= 0.96;
-
-      const speed = Math.hypot(b.vx, b.vy);
-      if (speed < 0.045) {
-        b.vx = 0;
-        b.vy = 0;
-      } else {
-        anyMoving = true;
-      }
-    }
-
-    if (!anyMoving && this.state === 'MOVING') {
-      this.evaluateTurnEnd();
-    }
-  }
-
-  handleBallPocketed(ball, pocket) {
-    ball.potted = true;
-    ball.vx = 0;
-    ball.vy = 0;
-
-    this.pocketAnims.push({
-      id: ball.id, customHex: ball.customHex, x: pocket.x, y: pocket.y, scale: 1.0
-    });
-
-    if (ball.id === 0) {
-      this.cueScratched = true;
-      SFX.playPocketDrop(true);
-    } else {
-      this.pottedThisTurn.push(ball);
-      SFX.playPocketDrop(false);
-      this.addBallToReturnRail(ball);
-    }
-  }
-
-  addBallToReturnRail(ball) {
-    const rail = document.getElementById('pocketed-rail');
-    const div = document.createElement('div');
-    div.className = 'rail-ball';
-    const cInfo = BALL_COLORS[ball.id];
-    const hex = ball.customHex || (cInfo ? cInfo.hex : '#fff');
-    if (cInfo && cInfo.stripe) {
-      div.style.background = `linear-gradient(180deg, #fff 20%, ${hex} 20%, ${hex} 80%, #fff 80%)`;
-    } else {
-      div.style.background = hex;
-    }
-    div.textContent = ball.id <= 15 ? ball.id : (ball.isRed ? 'R' : ball.snookerVal);
-    rail.appendChild(div);
-  }
-
-  evaluateTurnEnd() {
-    if (this.mode === 'practice' || this.mode === 'online_p2p') {
-      if (this.cueScratched) {
-        const cue = this.getCueBall();
-        cue.potted = false;
-        cue.x = PLAY_X + PLAY_W * 0.23;
-        cue.y = PLAY_Y + PLAY_H / 2;
-        this.showToast('SCRATCH - BALL IN HAND');
-        this.state = 'BALL_IN_HAND';
-      } else {
-        this.turn = (this.turn === 1) ? 2 : 1;
-        this.state = 'AIMING';
-      }
-      if (this.mode === 'online_p2p' && this.isHost) this.sendPeerSync();
-      this.updateHUD();
-      return;
-    }
-
-    if (this.mode === 'snooker_ai') {
-      this.evaluateSnookerTurn();
-      return;
-    }
-
-    // 8-BALL RULES & AI COMPLETION GUARD
-    const potted8 = this.pottedThisTurn.some(b => b.id === 8);
-    const currentGroup = (this.turn === 1) ? this.p1Group : this.p2Group;
-
-    if (potted8) {
-      const remainingGroup = currentGroup ? this.balls.filter(b => !b.potted && this.getBallGroup(b.id) === currentGroup).length : 7;
-      const pName = this.turn === 1 ? 'YOU' : this.botName;
-      const oppName = this.turn === 1 ? this.botName : 'YOU';
-
-      if (remainingGroup === 0 && !this.cueScratched && this.firstHitBall && this.firstHitBall.id === 8) {
-        this.coins += this.stakeCoins;
-        this.updateCoinUI();
-        this.endMatch(pName + ' WINS!', `${pName} won ${this.stakeCoins} coins!`);
-      } else {
-        this.coins = Math.max(0, this.coins - this.stakeCoins);
-        this.updateCoinUI();
-        this.endMatch(oppName + ' WINS!', `${pName} made a foul on 8-Ball and lost ${this.stakeCoins} coins!`);
-      }
-      return;
-    }
-
-    let foulReason = null;
-    if (this.cueScratched) {
-      foulReason = 'FOUL! CUE BALL SCRATCHED';
-    } else if (!this.firstHitBall) {
-      foulReason = 'FOUL! NO BALL HIT';
-    } else if (currentGroup) {
-      const remaining = this.balls.filter(b => !b.potted && this.getBallGroup(b.id) === currentGroup).length;
-      const hitGroup = this.getBallGroup(this.firstHitBall.id);
-      if (remaining > 0 && hitGroup !== currentGroup) {
-        foulReason = `FOUL! MUST HIT YOUR GROUP FIRST`;
-      }
-    } else if (!currentGroup && this.firstHitBall.id === 8) {
-      foulReason = 'FOUL! CANNOT HIT 8-BALL ON OPEN TABLE';
-    }
-
-    if (foulReason) {
-      if (this.cueScratched) {
-        const cue = this.getCueBall();
-        cue.potted = false;
-        cue.x = PLAY_X + PLAY_W * 0.23;
-        cue.y = PLAY_Y + PLAY_H / 2;
-        this.resolveCueOverlap(cue);
-      }
-      this.turn = (this.turn === 1) ? 2 : 1;
-      this.turnTimeLeft = this.turnTimeMax;
-      this.showToast(`${foulReason} • BALL IN HAND`);
-      this.updateHUD();
-
-      if (this.turn === 2) {
-        this.placeAICueBallInHand();
-        this.triggerAITurn();
-      } else {
-        this.state = 'BALL_IN_HAND';
-      }
-      return;
-    }
-
-    let keptTurn = false;
-    if (this.pottedThisTurn.length > 0) {
-      if (!this.p1Group && !this.p2Group) {
-        const firstPot = this.pottedThisTurn[0];
-        const g = this.getBallGroup(firstPot.id);
-        if (g) {
-          if (this.turn === 1) {
-            this.p1Group = g;
-            this.p2Group = (g === 'SOLIDS') ? 'STRIPES' : 'SOLIDS';
-          } else {
-            this.p2Group = g;
-            this.p1Group = (g === 'SOLIDS') ? 'STRIPES' : 'SOLIDS';
-          }
-          this.showToast(`${this.turn === 1 ? 'YOU' : this.botName} ASSIGNED ${g}!`);
-          keptTurn = true;
-        }
-      } else {
-        const myGroup = (this.turn === 1) ? this.p1Group : this.p2Group;
-        if (this.pottedThisTurn.some(b => this.getBallGroup(b.id) === myGroup)) {
-          keptTurn = true;
-        }
-      }
-    }
-
-    if (!keptTurn) {
-      this.turn = (this.turn === 1) ? 2 : 1;
-      this.showToast(`${this.turn === 1 ? 'YOUR' : this.botName + "'S"} TURN`);
-    }
-
-    this.turnTimeLeft = this.turnTimeMax;
-    this.updateHUD();
-
-    if (this.turn === 2) {
-      this.triggerAITurn();
-    } else {
-      this.state = 'AIMING';
-    }
-  }
-
-  evaluateSnookerTurn() {
-    let foul = false;
-    if (this.cueScratched || !this.firstHitBall || !this.isBallLegalTarget(this.firstHitBall)) {
-      foul = true;
-    }
-
-    const redsRemain = this.balls.some(b => !b.potted && b.isRed);
-    this.pottedThisTurn.forEach(b => {
-      if (!b.isRed) {
-        if (redsRemain || foul || this.snookerTarget === 'RED') {
-          b.potted = false;
-          b.x = b.spotX;
-          b.y = b.spotY;
-          this.resolveCueOverlap(b);
-        }
-      }
-    });
-
-    if (this.cueScratched) {
-      const cue = this.getCueBall();
-      cue.potted = false;
-      cue.x = PLAY_X + PLAY_W * 0.20;
-      cue.y = PLAY_Y + PLAY_H / 2;
-      this.resolveCueOverlap(cue);
-    }
-
-    if (foul) {
-      if (this.turn === 1) this.p2Score += 4;
-      else this.p1Score += 4;
-      this.turn = (this.turn === 1) ? 2 : 1;
-      this.snookerTarget = 'RED';
-      this.showToast('SNOOKER FOUL! +4 PTS TO OPPONENT');
-    } else if (this.pottedThisTurn.length > 0) {
-      let pts = 0;
-      this.pottedThisTurn.forEach(b => pts += b.snookerVal);
-      if (this.turn === 1) this.p1Score += pts;
-      else this.p2Score += pts;
-
-      if (this.snookerTarget === 'RED') {
-        this.snookerTarget = 'COLOR_ANY';
-        this.showToast(`+${pts} PTS! NOW TARGET COLOR`);
-      } else {
-        this.snookerTarget = redsRemain ? 'RED' : this.getLowestColorVal();
-      }
-    } else {
-      this.turn = (this.turn === 1) ? 2 : 1;
-      this.snookerTarget = redsRemain ? 'RED' : this.getLowestColorVal();
-      this.showToast(`${this.turn === 1 ? 'YOUR' : this.botName + "'S"} TURN`);
-    }
-
-    const activeLeft = this.balls.filter(b => !b.potted && b.id !== 0).length;
-    if (activeLeft === 0) {
-      const won = this.p1Score >= this.p2Score;
-      if (won) this.coins += this.stakeCoins;
-      else this.coins = Math.max(0, this.coins - this.stakeCoins);
-      this.updateCoinUI();
-      const winText = won ? 'YOU WIN SNOOKER!' : `${this.botName.toUpperCase()} WINS!`;
-      this.endMatch(winText, `Score: YOU ${this.p1Score} - ${this.p2Score} ${this.botName}`);
-      return;
-    }
-
-    this.turnTimeLeft = this.turnTimeMax;
-    this.updateHUD();
-    if (this.turn === 2) this.triggerAITurn();
-    else this.state = 'AIMING';
-  }
-
-  resolveCueOverlap(ball) {
-    let tries = 0;
-    while (tries < 40) {
-      const overlap = this.balls.some(other => other !== ball && !other.potted && Math.hypot(ball.x - other.x, ball.y - other.y) < BALL_R * 2.1);
-      if (!overlap) break;
-      ball.y += 12;
-      if (ball.y > PLAY_Y + PLAY_H - BALL_R * 2) {
-        ball.y = PLAY_Y + BALL_R * 2;
-        ball.x += 12;
-      }
-      tries++;
-    }
-  }
-
-  placeAICueBallInHand() {
-    const cue = this.getCueBall();
-    cue.x = PLAY_X + PLAY_W * 0.25;
-    cue.y = PLAY_Y + PLAY_H * (0.3 + Math.random() * 0.4);
-    this.resolveCueOverlap(cue);
-  }
-
-  // ROBUST AI BOT TURN TRIGGER (Never freezes/stops)
-  triggerAITurn() {
-    this.state = 'AI_THINKING';
-    const cue = this.getCueBall();
-    const legalBalls = this.balls.filter(b => this.isBallLegalTarget(b));
-
-    let bestShot = null;
-    let bestScore = -Infinity;
-
-    for (const target of legalBalls) {
-      for (const pocket of this.pockets) {
-        const toPocketX = pocket.x - target.x;
-        const toPocketY = pocket.y - target.y;
-        const distToPocket = Math.hypot(toPocketX, toPocketY);
-        const pnx = toPocketX / distToPocket;
-        const pny = toPocketY / distToPocket;
-
-        const ghostX = target.x - pnx * (BALL_R * 2);
-        const ghostY = target.y - pny * (BALL_R * 2);
-
-        const toGhostX = ghostX - cue.x;
-        const toGhostY = ghostY - cue.y;
-        const distToGhost = Math.hypot(toGhostX, toGhostY);
-        const gnx = toGhostX / distToGhost;
-        const gny = toGhostY / distToGhost;
-
-        const cutDot = gnx * pnx + gny * pny;
-        if (cutDot < 0.20) continue;
-
-        if (!this.isPathClear(cue.x, cue.y, ghostX, ghostY, [cue.id, target.id])) continue;
-        if (!this.isPathClear(target.x, target.y, pocket.x, pocket.y, [cue.id, target.id])) continue;
-
-        const score = (cutDot * 120) - (distToGhost * 0.08) - (distToPocket * 0.11);
-        if (score > bestScore) {
-          bestScore = score;
-          bestShot = {
-            angle: Math.atan2(toGhostY, toGhostX),
-            power: Math.min(0.85, Math.max(0.35, (distToGhost + distToPocket) / 750))
-          };
-        }
-      }
-    }
-
-    if (!bestShot) {
-      // Fallback guaranteed shot so AI never gets stuck
-      const fallbackTarget = legalBalls[0] || this.balls.find(b => !b.potted && b.id !== 0);
-      if (fallbackTarget) {
-        bestShot = {
-          angle: Math.atan2(fallbackTarget.y - cue.y, fallbackTarget.x - cue.x) + (Math.random() - 0.5) * 0.05,
-          power: 0.45
-        };
-      } else {
-        bestShot = { angle: Math.random() * Math.PI * 2, power: 0.4 };
-      }
-    } else {
-      bestShot.angle += (Math.random() - 0.5) * 0.01;
-    }
-
-    const startAngle = this.aimAngle;
-    const targetAngle = bestShot.angle;
-    const targetPower = bestShot.power;
-    const startTime = performance.now();
-
-    const animateAI = (now) => {
-      if (this.state !== 'AI_THINKING') return;
-      const t = Math.min(1, (now - startTime) / 1000);
-      const ease = 1 - Math.pow(1 - t, 3);
-      this.aimAngle = startAngle + (targetAngle - startAngle) * ease;
-      this.pullPower = ease * targetPower;
-      if (t < 1) {
-        requestAnimationFrame(animateAI);
-      } else {
-        this.fireShot(targetPower);
-      }
-    };
-    requestAnimationFrame(animateAI);
-  }
-
-  isPathClear(x1, y1, x2, y2, ignoreIds) {
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-    const len = Math.hypot(dx, dy);
-    if (len < 1) return true;
-    const ux = dx / len;
-    const uy = dy / len;
-
-    for (const b of this.balls) {
-      if (b.potted || ignoreIds.includes(b.id)) continue;
-      const bx = b.x - x1;
-      const by = b.y - y1;
-      const proj = bx * ux + by * uy;
-      if (proj > 0 && proj < len) {
-        const perp = Math.abs(bx * uy - by * ux);
-        if (perp < BALL_R * 2.02) return false;
-      }
-    }
-    return true;
-  }
-
-  render() {
-    const ctx = this.ctx;
-    ctx.save();
-    ctx.clearRect(0, 0, LOGICAL_W, LOGICAL_H);
-
-    this.drawTable(ctx);
-    this.drawPocketAnimations(ctx);
-    this.drawBalls(ctx);
-
-    if (this.state === 'AIMING' || this.state === 'BALL_IN_HAND' || this.state === 'AI_THINKING') {
-      this.drawGuidelinesAndCue(ctx);
-    }
-
-    ctx.restore();
-  }
-
-  drawTable(ctx) {
-    const frameGrad = ctx.createLinearGradient(0, 0, 0, LOGICAL_H);
-    frameGrad.addColorStop(0, '#4a210b');
-    frameGrad.addColorStop(0.5, '#2b1104');
-    frameGrad.addColorStop(1, '#1a0902');
-    ctx.fillStyle = frameGrad;
-    this.roundRect(ctx, 4, 4, LOGICAL_W - 8, LOGICAL_H - 8, 28);
-    ctx.fill();
-
-    ctx.strokeStyle = '#d97706';
-    ctx.lineWidth = 2.5;
-    this.roundRect(ctx, 10, 10, LOGICAL_W - 20, LOGICAL_H - 20, 24);
-    ctx.stroke();
-
-    const felt = FELT_THEMES[this.feltStyle] || FELT_THEMES.emerald;
-    const feltGrad = ctx.createRadialGradient(
-      LOGICAL_W / 2, LOGICAL_H / 2, 50,
-      LOGICAL_W / 2, LOGICAL_H / 2, PLAY_W * 0.65
-    );
-    feltGrad.addColorStop(0, felt.center);
-    feltGrad.addColorStop(1, felt.edge);
-    ctx.fillStyle = feltGrad;
-    ctx.fillRect(PLAY_X - 10, PLAY_Y - 10, PLAY_W + 20, PLAY_H + 20);
-
-    ctx.strokeStyle = 'rgba(0,0,0,0.45)';
-    ctx.lineWidth = 6;
-    ctx.strokeRect(PLAY_X, PLAY_Y, PLAY_W, PLAY_H);
-
-    ctx.strokeStyle = felt.line;
-    ctx.lineWidth = 1.6;
-    const baulkX = PLAY_X + PLAY_W * 0.23;
-    ctx.beginPath();
-    ctx.moveTo(baulkX, PLAY_Y);
-    ctx.lineTo(baulkX, PLAY_Y + PLAY_H);
-    ctx.stroke();
-
-    if (this.mode === 'snooker_ai') {
-      ctx.beginPath();
-      ctx.arc(baulkX, PLAY_Y + PLAY_H / 2, PLAY_H * 0.18, Math.PI * 0.5, Math.PI * 1.5);
-      ctx.stroke();
-    }
-
-    ctx.fillStyle = 'rgba(255,255,255,0.35)';
-    ctx.beginPath();
-    ctx.arc(PLAY_X + PLAY_W * 0.73, PLAY_Y + PLAY_H / 2, 3.5, 0, Math.PI * 2);
-    ctx.fill();
-
-    for (const p of this.pockets) {
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r + 5, 0, Math.PI * 2);
-      ctx.fillStyle = '#92400e';
-      ctx.fill();
-
-      const pGrad = ctx.createRadialGradient(p.x, p.y, p.r * 0.2, p.x, p.y, p.r);
-      pGrad.addColorStop(0, '#000000');
-      pGrad.addColorStop(0.75, '#090d16');
-      pGrad.addColorStop(1, '#1e293b');
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fillStyle = pGrad;
-      ctx.fill();
-    }
-  }
-
-  drawPocketAnimations(ctx) {
-    for (let i = this.pocketAnims.length - 1; i >= 0; i--) {
-      const a = this.pocketAnims[i];
-      a.scale -= 0.08;
-      if (a.scale <= 0) {
-        this.pocketAnims.splice(i, 1);
-        continue;
-      }
-      ctx.save();
-      ctx.translate(a.x, a.y);
-      ctx.scale(a.scale, a.scale);
-      const cInfo = BALL_COLORS[a.id];
-      ctx.fillStyle = a.customHex || (cInfo ? cInfo.hex : '#fff');
-      ctx.beginPath();
-      ctx.arc(0, 0, BALL_R, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
-  }
-
-  drawBalls(ctx) {
-    for (const b of this.balls) {
-      if (b.potted) continue;
-
-      ctx.beginPath();
-      ctx.arc(b.x + 2.5, b.y + 3.5, BALL_R, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.42)';
-      ctx.fill();
-
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(b.x, b.y, BALL_R, 0, Math.PI * 2);
-      ctx.clip();
-
-      const cInfo = BALL_COLORS[b.id] || { hex: '#dc2626', stripe: false };
-      const baseColor = b.customHex || cInfo.hex;
-
-      if (cInfo.stripe && !b.customHex) {
-        ctx.fillStyle = '#f8fafc';
-        ctx.fillRect(b.x - BALL_R, b.y - BALL_R, BALL_R * 2, BALL_R * 2);
-        ctx.fillStyle = baseColor;
-        ctx.fillRect(b.x - BALL_R, b.y - BALL_R * 0.55, BALL_R * 2, BALL_R * 1.1);
-      } else {
-        ctx.fillStyle = baseColor;
-        ctx.fillRect(b.x - BALL_R, b.y - BALL_R, BALL_R * 2, BALL_R * 2);
-      }
-
-      if (b.id >= 1 && b.id <= 15) {
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, BALL_R * 0.44, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = '#0f172a';
-        ctx.font = '900 8.5px system-ui, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(String(b.id), b.x, b.y + 0.5);
-      }
-
-      const shadeGrad = ctx.createRadialGradient(
-        b.x - BALL_R * 0.35, b.y - BALL_R * 0.35, BALL_R * 0.1,
-        b.x, b.y, BALL_R
-      );
-      shadeGrad.addColorStop(0, 'rgba(255,255,255,0.55)');
-      shadeGrad.addColorStop(0.28, 'rgba(255,255,255,0.0)');
-      shadeGrad.addColorStop(1, 'rgba(0,0,0,0.48)');
-      ctx.fillStyle = shadeGrad;
-      ctx.fillRect(b.x - BALL_R, b.y - BALL_R, BALL_R * 2, BALL_R * 2);
-
-      ctx.restore();
-
-      if (b.id === 0 && this.state === 'BALL_IN_HAND') {
-        ctx.save();
-        ctx.strokeStyle = '#00f2fe';
-        ctx.lineWidth = 2;
-        ctx.setLineDash([4, 3]);
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, BALL_R + 6, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.restore();
-      }
-    }
-  }
-
-  drawGuidelinesAndCue(ctx) {
-    const cue = this.getCueBall();
-    if (!cue || cue.potted) return;
-
-    const pred = this.computeAimPrediction();
-    if (pred) {
-      ctx.save();
-      ctx.beginPath();
-      ctx.moveTo(cue.x, cue.y);
-      ctx.lineTo(pred.ghostX, pred.ghostY);
-      ctx.strokeStyle = pred.isLegal ? 'rgba(255, 255, 255, 0.85)' : 'rgba(239, 68, 68, 0.85)';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      ctx.beginPath();
-      ctx.arc(pred.ghostX, pred.ghostY, BALL_R, 0, Math.PI * 2);
-      ctx.strokeStyle = pred.isLegal ? '#ffffff' : '#ef4444';
-      ctx.lineWidth = 1.8;
-      ctx.stroke();
-
-      if (!pred.isLegal) {
-        ctx.beginPath();
-        ctx.moveTo(pred.ghostX - 6, pred.ghostY - 6);
-        ctx.lineTo(pred.ghostX + 6, pred.ghostY + 6);
-        ctx.moveTo(pred.ghostX + 6, pred.ghostY - 6);
-        ctx.lineTo(pred.ghostX - 6, pred.ghostY + 6);
-        ctx.strokeStyle = '#ef4444';
-        ctx.lineWidth = 2.6;
-        ctx.stroke();
-      } else if (pred.hitBall) {
-        ctx.beginPath();
-        ctx.moveTo(pred.hitBall.x, pred.hitBall.y);
-        ctx.lineTo(pred.hitBall.x + pred.objDirX * 115, pred.hitBall.y + pred.objDirY * 115);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.92)';
-        ctx.lineWidth = 2.4;
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.moveTo(pred.ghostX, pred.ghostY);
-        ctx.lineTo(pred.ghostX + pred.cueDeflectX * 65, pred.ghostY + pred.cueDeflectY * 65);
-        ctx.strokeStyle = 'rgba(0, 242, 254, 0.78)';
-        ctx.lineWidth = 1.8;
-        ctx.setLineDash([5, 4]);
-        ctx.stroke();
-      }
-      ctx.restore();
-    }
-
-    ctx.save();
-    ctx.translate(cue.x, cue.y);
-    ctx.rotate(this.aimAngle + Math.PI);
-
-    const pullOffset = 18 + this.pullPower * 85;
-    const cueLen = 280;
-
-    const cueGrad = ctx.createLinearGradient(pullOffset, 0, pullOffset + cueLen, 0);
-    cueGrad.addColorStop(0, '#38bdf8');
-    cueGrad.addColorStop(0.02, '#f8fafc');
-    cueGrad.addColorStop(0.45, '#fde68a');
-    cueGrad.addColorStop(0.48, '#78350f');
-    cueGrad.addColorStop(1, '#270e03');
-
-    ctx.fillStyle = cueGrad;
-    ctx.beginPath();
-    ctx.moveTo(pullOffset, -2.5);
-    ctx.lineTo(pullOffset + cueLen, -5.5);
-    ctx.lineTo(pullOffset + cueLen, 5.5);
-    ctx.lineTo(pullOffset, 2.5);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
-  }
-
-  roundRect(ctx, x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
-  }
-
-  updateHUD() {
-    const p1Card = document.getElementById('p1-card');
-    const p2Card = document.getElementById('p2-card');
-    p1Card.classList.toggle('active-turn', this.turn === 1);
-    p2Card.classList.toggle('active-turn', this.turn === 2);
-
-    const isHumanTurn = (this.turn === 1 && !this.isAITurn()) || (this.mode === 'online_p2p');
-    document.getElementById('power-panel').classList.toggle('disabled', !isHumanTurn);
-    document.getElementById('aim-panel').classList.toggle('disabled', !isHumanTurn);
-
-    if (this.mode === 'snooker_ai') {
-      document.getElementById('p1-group').textContent = `${this.p1Score} PTS`;
-      document.getElementById('p2-group').textContent = `${this.p2Score} PTS`;
-      return;
-    }
-
-    document.getElementById('p1-group').textContent = this.p1Group || 'OPEN';
-    document.getElementById('p2-group').textContent = this.p2Group || 'OPEN';
-
-    this.renderPlayerBallSlots('p1-slots', this.p1Group);
-    this.renderPlayerBallSlots('p2-slots', this.p2Group);
-  }
-
-  renderPlayerBallSlots(containerId, group) {
-    const el = document.getElementById(containerId);
-    el.innerHTML = '';
-    if (!group) {
-      for (let i = 0; i < 7; i++) {
-        const slot = document.createElement('div');
-        slot.className = 'mini-ball';
-        el.appendChild(slot);
-      }
-      return;
-    }
-
-    const startId = (group === 'SOLIDS') ? 1 : 9;
-    for (let id = startId; id < startId + 7; id++) {
-      const ball = this.balls.find(b => b.id === id);
-      const slot = document.createElement('div');
-      slot.className = 'mini-ball';
-      if (ball && !ball.potted) {
-        const c = BALL_COLORS[id];
-        slot.style.background = c.stripe
-          ? `linear-gradient(180deg, #fff 22%, ${c.hex} 22%, ${c.hex} 78%, #fff 78%)`
-          : c.hex;
-      } else {
-        slot.style.opacity = '0.2';
-      }
-      el.appendChild(slot);
-    }
-  }
-
-  updatePowerUI(ratio) {
-    const pct = Math.round(ratio * 100);
-    document.getElementById('power-fill').style.height = pct + '%';
-    document.getElementById('power-cue-graphic').style.top = (8 + ratio * 65) + 'px';
-    document.getElementById('power-pct').textContent = pct + '%';
-  }
-
-  resetSpin() {
-    this.spinX = 0;
-    this.spinY = 0;
-    document.getElementById('spin-reticle').style.left = '50%';
-    document.getElementById('spin-reticle').style.top = '50%';
-    document.getElementById('spin-dot-mini').style.left = '50%';
-    document.getElementById('spin-dot-mini').style.top = '50%';
-  }
-
-  showToast(msg) {
-    const t = document.getElementById('toast-banner');
-    t.textContent = msg;
-    t.classList.add('show');
-    clearTimeout(this.toastTimeout);
-    this.toastTimeout = setTimeout(() => t.classList.remove('show'), 2300);
-  }
-
-  isAITurn() {
-    return (this.mode === '8ball_ai' || this.mode === 'snooker_ai') && this.turn === 2;
-  }
-
-  endMatch(title, reason) {
-    this.state = 'GAME_OVER';
-    document.getElementById('winner-title').textContent = title;
-    document.getElementById('winner-reason').textContent = reason;
-    document.getElementById('gameover-modal').classList.remove('hidden');
-  }
-
-  rematch() {
-    this.startMode(this.mode);
-  }
-
-  openMenu() {
-    document.getElementById('gameover-modal').classList.add('hidden');
-    document.getElementById('menu-modal').classList.remove('hidden');
-  }
-
-  bindEvents() {
-    window.addEventListener('resize', () => this.resize());
-
-    let draggingCueBall = false;
-    let aimingTable = false;
-
-    const getLogicalPos = (e) => {
-      const rect = this.canvas.getBoundingClientRect();
-      return {
-        x: ((e.clientX - rect.left) / rect.width) * LOGICAL_W,
-        y: ((e.clientY - rect.top) / rect.height) * LOGICAL_H
-      };
-    };
-
-    this.canvas.addEventListener('pointerdown', (e) => {
-      SFX.init();
-      if (this.isAITurn() || (this.state !== 'AIMING' && this.state !== 'BALL_IN_HAND')) return;
-      if (this.mode === 'online_p2p' && this.turn !== 1) return; // Prevent playing out of turn in P2P
-
-      const pos = getLogicalPos(e);
-      const cue = this.getCueBall();
-
-      if (this.state === 'BALL_IN_HAND' && Math.hypot(pos.x - cue.x, pos.y - cue.y) < BALL_R * 2.6) {
-        draggingCueBall = true;
-      } else {
-        aimingTable = true;
-        this.aimAngle = Math.atan2(pos.y - cue.y, pos.x - cue.x);
-      }
-      this.canvas.setPointerCapture(e.pointerId);
-    });
-
-    this.canvas.addEventListener('pointermove', (e) => {
-      if (!draggingCueBall && !aimingTable) return;
-      const pos = getLogicalPos(e);
-      const cue = this.getCueBall();
-
-      if (draggingCueBall) {
-        const nx = Math.max(PLAY_X + BALL_R, Math.min(PLAY_X + PLAY_W - BALL_R, pos.x));
-        const ny = Math.max(PLAY_Y + BALL_R, Math.min(PLAY_Y + PLAY_H - BALL_R, pos.y));
-        const overlap = this.balls.some(b => b.id !== 0 && !b.potted && Math.hypot(nx - b.x, ny - b.y) < BALL_R * 2.08);
-        if (!overlap) {
-          cue.x = nx;
-          cue.y = ny;
-        }
-      } else if (aimingTable) {
-        this.aimAngle = Math.atan2(pos.y - cue.y, pos.x - cue.x);
-      }
-    });
-
-    const endCanvasDrag = () => { draggingCueBall = false; aimingTable = false; };
-    this.canvas.addEventListener('pointerup', endCanvasDrag);
-    this.canvas.addEventListener('pointercancel', endCanvasDrag);
-
-    const powerTrack = document.getElementById('power-track');
-    let pullingPower = false;
-    let powerStartY = 0;
-
-    powerTrack.addEventListener('pointerdown', (e) => {
-      SFX.init();
-      if (this.isAITurn() || (this.state !== 'AIMING' && this.state !== 'BALL_IN_HAND')) return;
-      if (this.mode === 'online_p2p' && this.turn !== 1) return;
-      pullingPower = true;
-      powerStartY = e.clientY;
-      powerTrack.setPointerCapture(e.pointerId);
-    });
-
-    powerTrack.addEventListener('pointermove', (e) => {
-      if (!pullingPower) return;
-      const rect = powerTrack.getBoundingClientRect();
-      const deltaY = Math.max(0, e.clientY - powerStartY);
-      this.pullPower = Math.min(1, deltaY / (rect.height * 0.85));
-      this.updatePowerUI(this.pullPower);
-    });
-
-    const releasePower = () => {
-      if (!pullingPower) return;
-      pullingPower = false;
-      if (this.pullPower >= 0.05) {
-        this.fireShot(this.pullPower);
-      } else {
-        this.pullPower = 0;
-        this.updatePowerUI(0);
-      }
-    };
-    powerTrack.addEventListener('pointerup', releasePower);
-    powerTrack.addEventListener('pointercancel', releasePower);
-
-    const aimWheel = document.getElementById('aim-wheel');
-    let wheelActive = false;
-    let lastWheelY = 0;
-    let wheelBgOffset = 0;
-
-    aimWheel.addEventListener('pointerdown', (e) => {
-      if (this.isAITurn() || (this.state !== 'AIMING' && this.state !== 'BALL_IN_HAND')) return;
-      wheelActive = true;
-      lastWheelY = e.clientY;
-      aimWheel.setPointerCapture(e.pointerId);
-    });
-
-    aimWheel.addEventListener('pointermove', (e) => {
-      if (!wheelActive) return;
-      const dy = e.clientY - lastWheelY;
-      lastWheelY = e.clientY;
-      this.aimAngle += dy * 0.0016;
-      wheelBgOffset = (wheelBgOffset + dy) % 16;
-      aimWheel.style.backgroundPositionY = wheelBgOffset + 'px';
-    });
-
-    const endWheel = () => { wheelActive = false; };
-    aimWheel.addEventListener('pointerup', endWheel);
-    aimWheel.addEventListener('pointercancel', endWheel);
-
-    document.getElementById('spin-btn').addEventListener('click', () => {
-      document.getElementById('spin-modal').classList.remove('hidden');
-    });
-
-    const spinWheel = document.getElementById('spin-wheel-large');
-    let draggingSpin = false;
-    const updateSpinFromEvent = (e) => {
-      const rect = spinWheel.getBoundingClientRect();
-      const cx = rect.width / 2;
-      const cy = rect.height / 2;
-      let dx = (e.clientX - rect.left - cx) / (cx * 0.78);
-      let dy = (e.clientY - rect.top - cy) / (cy * 0.78);
-      const mag = Math.hypot(dx, dy);
-      if (mag > 1) { dx /= mag; dy /= mag; }
-      this.spinX = dx;
-      this.spinY = -dy;
-
-      const pctX = 50 + dx * 38;
-      const pctY = 50 + dy * 38;
-      document.getElementById('spin-reticle').style.left = pctX + '%';
-      document.getElementById('spin-reticle').style.top = pctY + '%';
-      document.getElementById('spin-dot-mini').style.left = pctX + '%';
-      document.getElementById('spin-dot-mini').style.top = pctY + '%';
-    };
-
-    spinWheel.addEventListener('pointerdown', (e) => {
-      draggingSpin = true;
-      updateSpinFromEvent(e);
-      spinWheel.setPointerCapture(e.pointerId);
-    });
-    spinWheel.addEventListener('pointermove', (e) => { if (draggingSpin) updateSpinFromEvent(e); });
-    spinWheel.addEventListener('pointerup', () => { draggingSpin = false; });
-
-    document.getElementById('menu-btn').addEventListener('click', () => {
-      document.getElementById('menu-modal').classList.remove('hidden');
-    });
-
-    document.getElementById('sound-btn').addEventListener('click', (e) => {
-      SFX.muted = !SFX.muted;
-      e.currentTarget.textContent = SFX.muted ? '🔇' : '🔊';
-    });
-
-    document.getElementById('fullscreen-btn').addEventListener('click', () => {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(() => {});
-      } else {
-        document.exitFullscreen().catch(() => {});
-      }
-    });
-
-    document.getElementById('practice-undo-btn').addEventListener('click', () => {
-      if (this.historySnapshots.length > 0 && this.state !== 'MOVING') {
-        this.balls = JSON.parse(this.historySnapshots.pop());
-        this.state = 'AIMING';
-        this.showToast('SHOT UNDONE');
-      }
-    });
-
-    document.querySelectorAll('#stake-pills .pill').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('#stake-pills .pill').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        this.stakeCoins = parseInt(btn.dataset.stake);
-      });
-    });
-
-    document.querySelectorAll('#cue-pills .pill').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('#cue-pills .pill').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        this.cueStyle = btn.dataset.cue;
-      });
-    });
-  }
-
-  resize() {
-    const wrap = document.getElementById('canvas-wrap');
-    const availW = wrap.clientWidth - 8;
-    const availH = wrap.clientHeight - 8;
-    const aspect = LOGICAL_W / LOGICAL_H;
-
-    let cssW = availW;
-    let cssH = cssW / aspect;
-    if (cssH > availH) {
-      cssH = availH;
-      cssW = cssH * aspect;
-    }
-
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    this.canvas.style.width = `${cssW}px`;
-    this.canvas.style.height = `${cssH}px`;
-    this.canvas.width = LOGICAL_W * dpr;
-    this.canvas.height = LOGICAL_H * dpr;
-    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  }
-
-  loop(now) {
-    const dtSec = Math.min(0.1, (now - this.lastFrameTime) / 1000);
-    this.lastFrameTime = now;
-
-    if (this.state === 'MOVING') {
-      this.stepPhysics();
-    } else if ((this.state === 'AIMING' || this.state === 'BALL_IN_HAND') && this.mode !== 'practice') {
-      this.turnTimeLeft -= dtSec;
-      const curSec = Math.ceil(this.turnTimeLeft);
-      if (curSec <= 5 && curSec < this.lastTickSec && curSec > 0) {
-        SFX.playTick();
-      }
-      this.lastTickSec = curSec;
-
-      const ratio = Math.max(0, this.turnTimeLeft / this.turnTimeMax);
-      const offset = 126 * (1 - ratio);
-      const activeCircle = document.getElementById(this.turn === 1 ? 'p1-timer' : 'p2-timer');
-      const idleCircle = document.getElementById(this.turn === 1 ? 'p2-timer' : 'p1-timer');
-      if (activeCircle) {
-        activeCircle.style.strokeDashoffset = String(offset);
-        activeCircle.style.stroke = ratio < 0.25 ? '#ef4444' : '#10b981';
-      }
-      if (idleCircle) idleCircle.style.strokeDashoffset = '126';
-
-      if (this.turnTimeLeft <= 0) {
-        this.turn = (this.turn === 1) ? 2 : 1;
-        this.turnTimeLeft = this.turnTimeMax;
-        this.showToast('TIME OUT! TURN SWITCHED');
-        this.updateHUD();
-        if (this.turn === 2 && this.isAITurn()) {
-          this.placeAICueBallInHand();
-          this.triggerAITurn();
-        } else {
-          this.state = 'BALL_IN_HAND';
-        }
-      }
-    }
-
-    this.render();
-    requestAnimationFrame((t) => this.loop(t));
-  }
+  claimDailyBonus(){const day=new Date().toISOString().slice(0,10),last=localStorage.getItem('gk_pool_bonus_day');if(last===day){this.toast('DAILY BONUS ALREADY CLAIMED');return;}this.coins+=250;localStorage.setItem('gk_pool_bonus_day',day);this.updateCoins();this.toast('DAILY BONUS · +250 COINS');}
+  resize(){const wrap=document.getElementById('canvas-wrap');if(!wrap)return;const aw=Math.max(10,wrap.clientWidth-4),ah=Math.max(10,wrap.clientHeight-4),aspect=LOGICAL_W/LOGICAL_H;let w=aw,h=w/aspect;if(h>ah){h=ah;w=h*aspect;}const dpr=Math.min(window.devicePixelRatio||1,2);this.canvas.style.width=w+'px';this.canvas.style.height=h+'px';this.canvas.width=Math.round(LOGICAL_W*dpr);this.canvas.height=Math.round(LOGICAL_H*dpr);this.ctx.setTransform(dpr,0,0,dpr,0,0);}
+  loop(now){const sec=Math.min(.05,(now-this.lastFrame)/1000);this.lastFrame=now;if(this.state==='MOVING')this.stepPhysics(sec*60);else if(['AIMING','BALL_IN_HAND'].includes(this.state)&&this.mode!=='practice'&&this.isMyTurn()){this.turnTime-=sec;const s=Math.ceil(this.turnTime);if(s<=5&&s<this.lastTick&&s>0)SFX.tick();this.lastTick=s;this.updateTimerUI();if(this.turnTime<=0){this.turnTime=TURN_SECONDS;if(this.mode==='online_p2p'&&this.isHost){this.switchAfterFoul('TIME OUT · BALL IN HAND');}else if(this.mode==='8ball_ai'&&this.turn===1){this.switchAfterFoul('TIME OUT · TURN LOST');}else if(this.mode==='snooker_ai'&&this.turn===1){this.turn=2;this.state='AIMING';this.updateHUD();this.triggerAI();}else if(this.mode==='online_p2p'&&!this.isHost){this.conn?.send({type:'ACTION',timeout:true});this.state='WAITING_SYNC';}}}this.render();requestAnimationFrame(t=>this.loop(t));}
 }
 
 let Game;
-window.addEventListener('DOMContentLoaded', () => {
-  Game = new BilliardsGame();
-});
+window.addEventListener('DOMContentLoaded',()=>{try{Game=new PoolGame();}catch(error){console.error('GamerKie Pool failed to initialize:',error);document.body.insertAdjacentHTML('beforeend','<div style="position:fixed;inset:0;z-index:999;background:#07130f;color:white;padding:24px;font:16px system-ui">Game failed to start. Reload the page and check the browser console.</div>');}});
 </script>
 </body>
 </html>
